@@ -1,34 +1,193 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
+/* ZVG Portal Termin-Extraktor Styles */
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
+.app-container {
     min-height: 100vh;
+    background-color: var(--background);
+}
+
+/* Header */
+.app-header {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+/* Sidebar */
+.app-sidebar {
+    background-color: #FFFFFF;
+    border-right: 1px solid var(--border);
+    width: 240px;
+    min-height: calc(100vh - 57px);
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    color: var(--text-muted);
+    transition: all 150ms ease-in-out;
+    border-left: 3px solid transparent;
+    font-size: 0.875rem;
+}
+
+.sidebar-item:hover {
+    background-color: var(--surface-primary);
+    color: var(--text-main);
+}
+
+.sidebar-item.active {
+    background-color: var(--primary-muted);
+    color: var(--primary);
+    border-left-color: var(--primary);
+    font-weight: 500;
+}
+
+/* Main content */
+.main-content {
+    padding: 1.5rem 2rem;
+    background-color: var(--surface-primary);
+    min-height: calc(100vh - 57px);
+}
+
+/* Cards */
+.stat-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem;
+    transition: all 150ms ease-in-out;
+}
+
+.stat-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Filter bar */
+.filter-bar {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Data table container */
+.table-container {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* Badge styles */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+}
+
+.badge-primary {
+    background-color: var(--primary-muted);
+    color: var(--primary);
+}
+
+.badge-success {
+    background-color: #D1FAE5;
+    color: #059669;
+}
+
+.badge-warning {
+    background-color: #FEF3C7;
+    color: #D97706;
+}
+
+.badge-danger {
+    background-color: #FEE2E2;
+    color: #DC2626;
+}
+
+/* Button overrides for primary style */
+.btn-primary {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover) !important;
+}
+
+/* Notification dot */
+.notification-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-danger);
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* Empty state */
+.empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    padding: 4rem 2rem;
+    text-align: center;
 }
 
-.App-link {
-    color: #61dafb;
+.empty-state-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--surface-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
 }
 
-@keyframes App-logo-spin {
+/* Overline text */
+.overline {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Numeric/mono data */
+.data-mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.875rem;
+}
+
+/* Currency alignment */
+.text-currency {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: right;
+}
+
+/* Sheet/Panel overrides */
+[data-state="open"] .sheet-content {
+    animation: slideIn 200ms ease-out;
+}
+
+@keyframes slideIn {
     from {
-        transform: rotate(0deg);
+        transform: translateX(100%);
     }
     to {
-        transform: rotate(360deg);
+        transform: translateX(0);
     }
 }
