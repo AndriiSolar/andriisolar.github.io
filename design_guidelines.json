@@ -1,0 +1,87 @@
+{
+  "theme": "light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast)",
+  "vibe": "Professional, authoritative, data-dense, architectural precision, objective.",
+  "colors": {
+    "background": "#FFFFFF",
+    "surface_primary": "#F9FAFB",
+    "surface_secondary": "#F3F4F6",
+    "border": "#E5E7EB",
+    "border_strong": "#D1D5DB",
+    "primary": "#0052FF",
+    "primary_hover": "#0040CC",
+    "primary_muted": "#E0E7FF",
+    "text_main": "#111827",
+    "text_muted": "#6B7280",
+    "accent_warning": "#F59E0B",
+    "accent_danger": "#DC2626",
+    "accent_success": "#10B981",
+    "blueprint_blue": "#0F172A"
+  },
+  "typography": {
+    "heading_font": "IBM Plex Sans",
+    "body_font": "IBM Plex Sans",
+    "mono_font": "IBM Plex Mono",
+    "hierarchy": {
+      "h1": "text-4xl tracking-tight font-semibold text-text_main",
+      "h2": "text-2xl tracking-tight font-semibold text-text_main",
+      "h3": "text-xl tracking-tight font-medium text-text_main",
+      "overline": "text-xs uppercase tracking-[0.2em] font-semibold text-text_muted",
+      "body": "text-base leading-relaxed text-text_main",
+      "body_sm": "text-sm text-text_main",
+      "data_cell": "font-mono text-sm text-text_main",
+      "data_cell_numeric": "font-mono text-sm text-right text-text_main"
+    },
+    "pairing_strategy": "The 'Old Money Tech' variant for dashboards: Clean Sans Head/Body (IBM Plex Sans) + Sterile Mono Data (IBM Plex Mono) for all IDs, dates, and currency."
+  },
+  "layout": {
+    "strategy": "Mode B: The 'Control Room' Grid",
+    "grid_system": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with tight gaps (gap-4 or gap-6).",
+    "spacing": "Dense and compact. Use p-4 to p-6 for widget containers, p-2 to p-3 for table cells. Generous p-8 padding for main page wrapper.",
+    "surfaces": "Grid Borders (The 'Technical' Look). Expose the skeleton. Containers use 1px solid borders (border-border). Avoid heavy shadows.",
+    "radius": "rounded-sm (2px) to rounded-md (6px) for a sharp, precise, architectural feel. No heavy rounding."
+  },
+  "components": {
+    "navigation": "Top navigation bar or collapsible left sidebar. Solid white background with a hard 1px border-b or border-r. Active items highlighted with a left-border indicator or subtle background tint.",
+    "data_table": "Shadcn UI Table. Implement sticky headers. Add zebra striping (even rows bg-surface_primary) for readability. Ensure 'Verkehrswert' (Market Value) is right-aligned. Use IBM Plex Mono for 'Aktenzeichen' (File Number) and Dates.",
+    "buttons": "Flat, solid backgrounds. Primary button (e.g., 'Datenabfrage starten') uses #0052FF with white text. Secondary buttons use transparent or white backgrounds with 1px border (border_strong) and text_main.",
+    "filters": "Horizontal action bar above the table containing Shadcn Select components (Bundesland, Immobilientyp) and Date Picker.",
+    "cards": "Minimalist. border border-border bg-white. Hover state: slight shadow-sm and border-border_strong.",
+    "modals_and_panels": "For 'Termindetails anzeigen', use a Slide-over Side Panel (Sheet component) rather than a centered modal to maintain context of the grid behind it.",
+    "notifications": "In-app notifications via a dropdown menu from a Bell icon in the top right. Use Sonner for toast notifications on success/error (e.g., 'Termine erfolgreich aktualisiert').",
+    "forms": "For 'Klassifizierungskriterien anpassen', use Shadcn Form, Input, and Checkbox components inside a dedicated settings view or modal. Left-align labels."
+  },
+  "motion": {
+    "hover": "Subtle and fast. transition-colors duration-150 ease-in-out.",
+    "interactions": "No bouncy animations. Use standard 200ms ease for opening panels/dropdowns.",
+    "loading": "Skeleton loaders for the table. When manual data fetch is triggered, use a subtle indeterminate loading bar at the top of the table rather than blocking the whole screen."
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "install_command": "yarn add @phosphor-icons/react",
+    "style": "Regular weight, matching the crispness of the IBM Plex fonts."
+  },
+  "images": {
+    "login_background": {
+      "url": "https://images.pexels.com/photos/4458196/pexels-photo-4458196.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Architectural blueprint, intended to be used with a heavy white overlay (e.g., bg-white/90) as a subtle background for a login or onboarding screen."
+    },
+    "empty_state": {
+      "url": "https://images.pexels.com/photos/6615086/pexels-photo-6615086.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Compass on blueprint, intended to be used as a small illustration for 'No foreclosures found' or 'No filters matched' state, ideally masked or desaturated."
+    }
+  },
+  "testing": "All interactive elements MUST have data-testid attributes (e.g., data-testid='trigger-fetch-btn', data-testid='filter-state-select').",
+  "instructions_to_main_agent": [
+    "Install required fonts (IBM Plex Sans, IBM Plex Mono) via Google Fonts in index.html or globals.css.",
+    "Install @phosphor-icons/react for UI iconography.",
+    "Implement the layout with pure HTML/Tailwind for structural framing, using Shadcn components (Table, Select, Sheet, Dialog, Form) for complex interactions.",
+    "Build a primary dashboard view containing the Filter Bar (State, Property Type, Date) and the main Foreclosure Data Grid.",
+    "The Data Grid must use the mono_font for IDs, Dates, and right-align all currency/numeric columns.",
+    "Implement the 'Manuelle Datenabfrage' (Manual Fetch) as a prominent primary CTA button in the header or filter bar.",
+    "Use a Slide-over (Shadcn Sheet) for displaying foreclosure appointment details (Termindetails) when a row is clicked.",
+    "Create a dedicated Settings section or Dialog for adjusting classification rules and Resend email configurations.",
+    "Adhere strictly to the High-Contrast Swiss styling: rely on 1px borders (border-collapse where applicable) instead of shadows for separation.",
+    "Ensure hover states and focus states strictly follow the APCA/WCAG contrast requirements defined."
+  ]
+}
