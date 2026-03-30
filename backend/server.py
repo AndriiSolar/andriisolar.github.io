@@ -528,11 +528,28 @@ async def delete_classification_rule(rule_id: str):
 @api_router.get("/settings")
 async def get_settings():
     """Get application settings"""
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    if not settings:
-        settings = Settings().model_dump()
-        await db.settings.insert_one(settings)
-    return settings
+    try:
+        settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+        if not settings:
+            # Create default settings
+            default_settings = {
+                "id": "settings",
+                "email_notifications_enabled": False,
+                "notification_email": None,
+                "selected_bundeslaender": ["bw", "by", "he", "rp"]
+            }
+            await db.settings.insert_one(default_settings)
+            return default_settings
+        return settings
+    except Exception as e:
+        logger.error(f"Error getting settings: {e}")
+        # Return defaults on error
+        return {
+            "id": "settings",
+            "email_notifications_enabled": False,
+            "notification_email": None,
+            "selected_bundeslaender": ["bw", "by", "he", "rp"]
+        }
 
 @api_router.put("/settings")
 async def update_settings(settings_update: SettingsUpdate):
