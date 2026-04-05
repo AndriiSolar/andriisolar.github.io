@@ -340,8 +340,12 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
         min_val, max_val = verkehrswert_range.replace("€", "").replace(".", "").replace(" ", "").split("-")
         verkehrswert = f"{random.randint(int(min_val), int(max_val)):,} €".replace(",", ".")
         
-        # Generate unique zvg_id for link
+        # Generate unique zvg_id for link - use realistic format for ZVG portal
         zvg_id = random.randint(100000, 999999)
+        
+        # The actual ZVG portal link format for viewing a specific foreclosure
+        # Format: index.php?button=showZvg&zvg_id=XXXXX&land_abk=XX
+        portal_link = f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={bundesland_code}"
         
         results.append({
             "aktenzeichen": aktenzeichen,
@@ -356,7 +360,8 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
             "plz": plz,
             "ort": ort,
             "verkehrswert": verkehrswert,
-            "link": f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={bundesland_code}"
+            "zvg_id": str(zvg_id),
+            "link": portal_link
         })
     
     return results

@@ -752,11 +752,12 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#E0E7FF] transition-colors"
-                        title="Відкрити в ZVG-порталі"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#E0E7FF] hover:bg-[#C7D2FE] transition-colors text-xs font-medium text-[#0052FF]"
+                        title={`Термін ${f.aktenzeichen} на ZVG-порталі`}
                         data-testid={`link-${f.id}`}
                       >
-                        <LinkIcon size={16} className="text-[#0052FF]" />
+                        <LinkIcon size={14} />
+                        ZVG
                       </a>
                     )}
                   </TableCell>
@@ -950,11 +951,12 @@ function TermineView({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#E0E7FF] transition-colors"
-                        title="Відкрити в ZVG-порталі"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#E0E7FF] hover:bg-[#C7D2FE] transition-colors text-xs font-medium text-[#0052FF]"
+                        title={`Термін ${f.aktenzeichen} на ZVG-порталі`}
                         data-testid={`link-${f.id}`}
                       >
-                        <LinkIcon size={16} className="text-[#0052FF]" />
+                        <LinkIcon size={14} />
+                        ZVG
                       </a>
                     )}
                   </TableCell>
