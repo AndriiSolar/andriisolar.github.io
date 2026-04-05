@@ -30,7 +30,8 @@ import {
   Ruler,
   BuildingOffice,
   HouseLine,
-  Bank
+  Bank,
+  Download
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,6 +129,11 @@ const UI_TEXT = {
   allObjectTypes: "Усі типи об'єктів",
   clearFilters: "Скинути фільтри",
   results: "результатів",
+  priceRange: "Діапазон цін",
+  priceFrom: "Ціна від",
+  priceTo: "Ціна до",
+  search: "Пошук",
+  searchPlaceholder: "Пошук за номером, судом, містом...",
   
   // Detail sheet
   appointmentDetails: "Деталі терміну",
@@ -135,11 +141,12 @@ const UI_TEXT = {
   description: "Опис",
   openInPortal: "Відкрити в ZVG-порталі",
   documents: "Документи",
-  expertReport: "Експертний висновок",
-  expose: "Експозе",
+  expertReport: "Експертний висновок (PDF)",
+  expose: "Експозе (PDF)",
   photos: "Фотографії",
-  courtDocuments: "Судові документи",
+  courtDocuments: "Судові документи (PDF)",
   noDocuments: "Документи недоступні",
+  downloadPdf: "Завантажити PDF",
   
   // Object details
   objectDetails: "Детальна інформація про об'єкт",
@@ -200,23 +207,35 @@ const UI_TEXT = {
   errorSaving: "Помилка збереження",
   errorLoading: "Помилка завантаження термінів",
   
-  // States (German names kept for data matching)
+  // States - All German states with Ukrainian translations
   states: {
     bw: "Баден-Вюртемберг",
     by: "Баварія", 
     he: "Гессен",
-    rp: "Рейнланд-Пфальц"
+    rp: "Рейнланд-Пфальц",
+    th: "Тюрінгія",
+    sn: "Саксонія",
+    nw: "Північний Рейн-Вестфалія",
+    ni: "Нижня Саксонія",
+    st: "Саксонія-Ангальт",
+    br: "Бранденбург",
+    be: "Берлін",
+    sh: "Шлезвіг-Гольштейн",
+    mv: "Мекленбург-Передня Померанія",
+    hb: "Бремен",
+    hh: "Гамбург",
+    sl: "Саар"
   }
 };
 
 // Classification badge colors
 const CLASSIFICATION_COLORS = {
-  "Wohnhäuser": "bg-blue-100 text-blue-700",
-  "Wohnungen": "bg-purple-100 text-purple-700",
-  "Gewerbe": "bg-amber-100 text-amber-700",
-  "Grundstücke": "bg-green-100 text-green-700",
-  "Stellplätze": "bg-slate-100 text-slate-700",
-  "Sonstiges": "bg-gray-100 text-gray-700",
+  "Wohnhäuser": "bg-blue-100 text-blue-800",
+  "Wohnungen": "bg-purple-100 text-purple-800",
+  "Gewerbe": "bg-amber-100 text-amber-800",
+  "Grundstücke": "bg-green-100 text-green-800",
+  "Stellplätze": "bg-slate-100 text-slate-800",
+  "Sonstiges": "bg-gray-100 text-gray-800",
 };
 
 // Classification translations to Ukrainian
@@ -229,13 +248,35 @@ const CLASSIFICATION_UA = {
   "Sonstiges": "Інше",
 };
 
-// Bundesländer mapping
+// Bundesländer mapping - all states
 const BUNDESLAENDER = {
   bw: "Baden-Württemberg",
   by: "Bayern",
   he: "Hessen",
   rp: "Rheinland-Pfalz",
+  th: "Thüringen",
+  sn: "Sachsen",
+  nw: "Nordrhein-Westfalen",
+  ni: "Niedersachsen",
+  st: "Sachsen-Anhalt",
+  br: "Brandenburg",
+  be: "Berlin",
+  sh: "Schleswig-Holstein",
+  mv: "Mecklenburg-Vorpommern",
+  hb: "Bremen",
+  hh: "Hamburg",
+  sl: "Saarland"
 };
+
+// Price range options
+const PRICE_RANGES = [
+  { label: "Усі ціни", min: null, max: null },
+  { label: "до 50.000 €", min: null, max: 50000 },
+  { label: "50.000 - 100.000 €", min: 50000, max: 100000 },
+  { label: "100.000 - 200.000 €", min: 100000, max: 200000 },
+  { label: "200.000 - 500.000 €", min: 200000, max: 500000 },
+  { label: "понад 500.000 €", min: 500000, max: null },
+];
 
 function App() {
   // State
@@ -258,6 +299,8 @@ function App() {
   const [filterBundesland, setFilterBundesland] = useState("all");
   const [filterKlassifizierung, setFilterKlassifizierung] = useState("all");
   const [filterObjektTyp, setFilterObjektTyp] = useState("all");
+  const [filterPriceRange, setFilterPriceRange] = useState("all");
+  const [filterSearch, setFilterSearch] = useState("");
 
   // Fetch data
   const fetchForeclosures = useCallback(async () => {
@@ -266,6 +309,16 @@ function App() {
       if (filterBundesland !== "all") params.append("bundesland", filterBundesland);
       if (filterKlassifizierung !== "all") params.append("klassifizierung", filterKlassifizierung);
       if (filterObjektTyp !== "all") params.append("objekt_typ", filterObjektTyp);
+      if (filterSearch) params.append("search", filterSearch);
+      
+      // Add price filter
+      if (filterPriceRange !== "all") {
+        const priceRange = PRICE_RANGES.find((_, idx) => idx.toString() === filterPriceRange);
+        if (priceRange) {
+          if (priceRange.min !== null) params.append("price_min", priceRange.min);
+          if (priceRange.max !== null) params.append("price_max", priceRange.max);
+        }
+      }
       
       const response = await axios.get(`${API}/foreclosures?${params.toString()}`);
       setForeclosures(response.data);
@@ -273,7 +326,7 @@ function App() {
       console.error("Error fetching foreclosures:", error);
       toast.error(UI_TEXT.errorLoading);
     }
-  }, [filterBundesland, filterKlassifizierung, filterObjektTyp]);
+  }, [filterBundesland, filterKlassifizierung, filterObjektTyp, filterPriceRange, filterSearch]);
 
   const fetchStatistics = async () => {
     try {
@@ -340,7 +393,7 @@ function App() {
   // Refetch when filters change
   useEffect(() => {
     fetchForeclosures();
-  }, [filterBundesland, filterKlassifizierung, filterObjektTyp, fetchForeclosures]);
+  }, [filterBundesland, filterKlassifizierung, filterObjektTyp, filterPriceRange, filterSearch, fetchForeclosures]);
 
   // Actions
   const triggerFetch = async () => {
@@ -387,6 +440,17 @@ function App() {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const hasActiveFilters = filterBundesland !== "all" || filterKlassifizierung !== "all" || 
+    filterObjektTyp !== "all" || filterPriceRange !== "all" || filterSearch !== "";
+
+  const clearAllFilters = () => {
+    setFilterBundesland("all");
+    setFilterKlassifizierung("all");
+    setFilterObjektTyp("all");
+    setFilterPriceRange("all");
+    setFilterSearch("");
+  };
 
   return (
     <div className="app-container" data-testid="app-container">
@@ -519,12 +583,18 @@ function App() {
               filterBundesland={filterBundesland}
               filterKlassifizierung={filterKlassifizierung}
               filterObjektTyp={filterObjektTyp}
+              filterPriceRange={filterPriceRange}
+              filterSearch={filterSearch}
               setFilterBundesland={setFilterBundesland}
               setFilterKlassifizierung={setFilterKlassifizierung}
               setFilterObjektTyp={setFilterObjektTyp}
+              setFilterPriceRange={setFilterPriceRange}
+              setFilterSearch={setFilterSearch}
               objektTypen={objektTypen}
               classificationRules={classificationRules}
               onOpenDetail={openForeclosureDetail}
+              hasActiveFilters={hasActiveFilters}
+              clearAllFilters={clearAllFilters}
             />
           )}
 
@@ -540,16 +610,16 @@ function App() {
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-[550px] sm:w-[600px] overflow-y-auto" data-testid="detail-sheet">
+        <SheetContent className="w-[550px] sm:w-[600px] overflow-y-auto bg-white" data-testid="detail-sheet">
           {selectedForeclosure && (
             <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
+              <SheetHeader className="border-b pb-4">
+                <SheetTitle className="flex items-center gap-2 text-[#111827]">
                   <Gavel size={20} className="text-[#0052FF]" />
                   {UI_TEXT.appointmentDetails}
                 </SheetTitle>
-                <SheetDescription>
-                  {UI_TEXT.caseNumber}: {selectedForeclosure.aktenzeichen}
+                <SheetDescription className="text-[#374151]">
+                  {UI_TEXT.caseNumber}: <span className="font-mono font-semibold text-[#111827]">{selectedForeclosure.aktenzeichen}</span>
                 </SheetDescription>
               </SheetHeader>
               <ForeclosureDetail foreclosure={selectedForeclosure} />
@@ -650,30 +720,30 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead>{UI_TEXT.caseNumber}</TableHead>
-                <TableHead>{UI_TEXT.date}</TableHead>
-                <TableHead>{UI_TEXT.location}</TableHead>
-                <TableHead>{UI_TEXT.type}</TableHead>
-                <TableHead className="text-right">{UI_TEXT.marketValue}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.caseNumber}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.date}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.location}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.type}</TableHead>
+                <TableHead className="text-right text-[#374151] font-semibold">{UI_TEXT.marketValue}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {foreclosures.slice(0, 10).map((f) => (
                 <TableRow 
                   key={f.id} 
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-[#F3F4F6]"
                   onClick={() => onOpenDetail(f)}
                   data-testid={`foreclosure-row-${f.id}`}
                 >
-                  <TableCell className="font-mono text-sm">{f.aktenzeichen}</TableCell>
-                  <TableCell className="font-mono text-sm">{f.termin_datum}</TableCell>
-                  <TableCell>{f.ort || f.gericht}</TableCell>
+                  <TableCell className="font-mono text-sm text-[#111827] font-medium">{f.aktenzeichen}</TableCell>
+                  <TableCell className="font-mono text-sm text-[#111827]">{f.termin_datum}</TableCell>
+                  <TableCell className="text-[#111827]">{f.ort || f.gericht}</TableCell>
                   <TableCell>
-                    <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0`}>
+                    <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0 font-medium`}>
                       {CLASSIFICATION_UA[f.klassifizierung] || f.klassifizierung}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono">{f.verkehrswert || "-"}</TableCell>
+                  <TableCell className="text-right font-mono text-[#111827] font-semibold">{f.verkehrswert || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -684,19 +754,25 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
   );
 }
 
-// Termine View Component
+// Termine View Component with extended filters
 function TermineView({ 
   foreclosures, 
   loading, 
   filterBundesland, 
   filterKlassifizierung, 
   filterObjektTyp,
+  filterPriceRange,
+  filterSearch,
   setFilterBundesland, 
   setFilterKlassifizierung,
   setFilterObjektTyp,
+  setFilterPriceRange,
+  setFilterSearch,
   objektTypen,
   classificationRules,
-  onOpenDetail 
+  onOpenDetail,
+  hasActiveFilters,
+  clearAllFilters
 }) {
   return (
     <div className="space-y-4" data-testid="termine-view">
@@ -706,69 +782,96 @@ function TermineView({
       </div>
 
       {/* Filter Bar */}
-      <div className="filter-bar flex flex-wrap items-center gap-4" data-testid="filter-bar">
-        <div className="flex items-center gap-2">
-          <Funnel size={18} className="text-[#6B7280]" />
-          <span className="text-sm font-medium text-[#6B7280]">{UI_TEXT.filters}:</span>
+      <div className="filter-bar space-y-4" data-testid="filter-bar">
+        {/* Search Row */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Funnel size={18} className="text-[#6B7280]" />
+            <span className="text-sm font-medium text-[#6B7280]">{UI_TEXT.filters}:</span>
+          </div>
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+              <Input
+                placeholder={UI_TEXT.searchPlaceholder}
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                className="pl-10"
+                data-testid="filter-search"
+              />
+            </div>
+          </div>
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="text-[#6B7280] hover:text-[#111827]"
+              data-testid="clear-filters-btn"
+            >
+              <X size={16} className="mr-1" />
+              {UI_TEXT.clearFilters}
+            </Button>
+          )}
+
+          <div className="ml-auto text-sm text-[#6B7280] font-medium">
+            {foreclosures.length} {UI_TEXT.results}
+          </div>
         </div>
         
-        <Select value={filterBundesland} onValueChange={setFilterBundesland}>
-          <SelectTrigger className="w-[180px]" data-testid="filter-bundesland">
-            <SelectValue placeholder={UI_TEXT.state} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{UI_TEXT.allStates}</SelectItem>
-            {Object.entries(BUNDESLAENDER).map(([code, name]) => (
-              <SelectItem key={code} value={code}>{UI_TEXT.states[code]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Filter Dropdowns Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={filterBundesland} onValueChange={setFilterBundesland}>
+            <SelectTrigger className="w-[200px]" data-testid="filter-bundesland">
+              <SelectValue placeholder={UI_TEXT.state} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{UI_TEXT.allStates}</SelectItem>
+              {Object.entries(BUNDESLAENDER).map(([code, name]) => (
+                <SelectItem key={code} value={code}>{UI_TEXT.states[code]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterKlassifizierung} onValueChange={setFilterKlassifizierung}>
-          <SelectTrigger className="w-[180px]" data-testid="filter-klassifizierung">
-            <SelectValue placeholder={UI_TEXT.category} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{UI_TEXT.allCategories}</SelectItem>
-            {classificationRules.map(rule => (
-              <SelectItem key={rule.id} value={rule.name}>
-                {CLASSIFICATION_UA[rule.name] || rule.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterKlassifizierung} onValueChange={setFilterKlassifizierung}>
+            <SelectTrigger className="w-[180px]" data-testid="filter-klassifizierung">
+              <SelectValue placeholder={UI_TEXT.category} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{UI_TEXT.allCategories}</SelectItem>
+              {classificationRules.map(rule => (
+                <SelectItem key={rule.id} value={rule.name}>
+                  {CLASSIFICATION_UA[rule.name] || rule.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterObjektTyp} onValueChange={setFilterObjektTyp}>
-          <SelectTrigger className="w-[200px]" data-testid="filter-objekt-typ">
-            <SelectValue placeholder={UI_TEXT.objectType} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{UI_TEXT.allObjectTypes}</SelectItem>
-            {objektTypen.map(type => (
-              <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterObjektTyp} onValueChange={setFilterObjektTyp}>
+            <SelectTrigger className="w-[220px]" data-testid="filter-objekt-typ">
+              <SelectValue placeholder={UI_TEXT.objectType} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{UI_TEXT.allObjectTypes}</SelectItem>
+              {objektTypen.map(type => (
+                <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {(filterBundesland !== "all" || filterKlassifizierung !== "all" || filterObjektTyp !== "all") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFilterBundesland("all");
-              setFilterKlassifizierung("all");
-              setFilterObjektTyp("all");
-            }}
-            className="text-[#6B7280]"
-            data-testid="clear-filters-btn"
-          >
-            <X size={16} className="mr-1" />
-            {UI_TEXT.clearFilters}
-          </Button>
-        )}
-
-        <div className="ml-auto text-sm text-[#6B7280]">
-          {foreclosures.length} {UI_TEXT.results}
+          <Select value={filterPriceRange} onValueChange={setFilterPriceRange}>
+            <SelectTrigger className="w-[200px]" data-testid="filter-price">
+              <SelectValue placeholder={UI_TEXT.priceRange} />
+            </SelectTrigger>
+            <SelectContent>
+              {PRICE_RANGES.map((range, idx) => (
+                <SelectItem key={idx} value={idx === 0 ? "all" : idx.toString()}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -789,13 +892,13 @@ function TermineView({
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead>{UI_TEXT.caseNumber}</TableHead>
-                <TableHead>{UI_TEXT.date}</TableHead>
-                <TableHead>{UI_TEXT.court}</TableHead>
-                <TableHead>{UI_TEXT.state}</TableHead>
-                <TableHead>{UI_TEXT.objectType}</TableHead>
-                <TableHead>{UI_TEXT.category}</TableHead>
-                <TableHead className="text-right">{UI_TEXT.marketValue}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.caseNumber}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.date}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.court}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.state}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.objectType}</TableHead>
+                <TableHead className="text-[#374151] font-semibold">{UI_TEXT.category}</TableHead>
+                <TableHead className="text-right text-[#374151] font-semibold">{UI_TEXT.marketValue}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -803,28 +906,28 @@ function TermineView({
               {foreclosures.map((f) => (
                 <TableRow 
                   key={f.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-[#F3F4F6]"
                   onClick={() => onOpenDetail(f)}
                   data-testid={`foreclosure-row-${f.id}`}
                 >
-                  <TableCell className="font-mono text-sm font-medium">{f.aktenzeichen}</TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-mono text-sm font-semibold text-[#111827]">{f.aktenzeichen}</TableCell>
+                  <TableCell className="font-mono text-sm text-[#111827]">
                     {f.termin_datum}
                     {f.termin_zeit && <span className="text-[#6B7280] ml-1">{f.termin_zeit}</span>}
                   </TableCell>
-                  <TableCell className="text-sm">{f.gericht}</TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm text-[#111827]">{f.gericht}</TableCell>
+                  <TableCell className="text-sm text-[#111827]">
                     {UI_TEXT.states[f.bundesland_code] || f.bundesland}
                   </TableCell>
-                  <TableCell className="text-sm">{f.objekt_typ}</TableCell>
+                  <TableCell className="text-sm text-[#111827]">{f.objekt_typ}</TableCell>
                   <TableCell>
-                    <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0`}>
+                    <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0 font-medium`}>
                       {CLASSIFICATION_UA[f.klassifizierung] || f.klassifizierung}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">{f.verkehrswert || "-"}</TableCell>
+                  <TableCell className="text-right font-mono text-sm font-semibold text-[#111827]">{f.verkehrswert || "-"}</TableCell>
                   <TableCell>
-                    <CaretRight size={16} className="text-[#6B7280]" />
+                    <CaretRight size={16} className="text-[#9CA3AF]" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -1054,17 +1157,17 @@ function RuleDialog({ open, onOpenChange, rule, objektTypen, onSave }) {
   );
 }
 
-// Settings Dialog Component
+// Settings Dialog Component with all states
 function SettingsDialog({ open, onOpenChange, settings, onSave }) {
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [email, setEmail] = useState("");
-  const [selectedStates, setSelectedStates] = useState(["bw", "by", "he", "rp"]);
+  const [selectedStates, setSelectedStates] = useState([]);
 
   useEffect(() => {
     if (settings) {
       setEmailEnabled(settings.email_notifications_enabled || false);
       setEmail(settings.notification_email || "");
-      setSelectedStates(settings.selected_bundeslaender || ["bw", "by", "he", "rp"]);
+      setSelectedStates(settings.selected_bundeslaender || Object.keys(BUNDESLAENDER));
     }
   }, [settings, open]);
 
@@ -1087,9 +1190,17 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
     }
   };
 
+  const selectAllStates = () => {
+    setSelectedStates(Object.keys(BUNDESLAENDER));
+  };
+
+  const deselectAllStates = () => {
+    setSelectedStates([Object.keys(BUNDESLAENDER)[0]]);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" data-testid="settings-dialog">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gear size={20} />
@@ -1102,8 +1213,18 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
         <div className="space-y-6 py-4">
           {/* Bundesländer Selection */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">{UI_TEXT.statesForQuery}</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">{UI_TEXT.statesForQuery}</Label>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={selectAllStates} className="text-xs">
+                  Усі
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deselectAllStates} className="text-xs">
+                  Скинути
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto border rounded-md p-3">
               {Object.entries(BUNDESLAENDER).map(([code, name]) => (
                 <div key={code} className="flex items-center space-x-2">
                   <Checkbox
@@ -1172,18 +1293,30 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
   );
 }
 
-// Enhanced Foreclosure Detail Component with Documents and Extended Info
+// Enhanced Foreclosure Detail Component with better contrast and PDF links
 function ForeclosureDetail({ foreclosure }) {
-  // Generate document links based on foreclosure data
+  // Generate direct PDF document links
   const generateDocumentLinks = () => {
     const baseUrl = "https://www.zvg-portal.de";
     const zvgId = foreclosure.link?.match(/zvg_id=(\d+)/)?.[1] || "12345";
     
     return {
-      gutachten: `${baseUrl}/index.php?button=showZvGutachten&zvg_id=${zvgId}`,
-      expose: `${baseUrl}/index.php?button=showZvExpose&zvg_id=${zvgId}`,
-      fotos: `${baseUrl}/index.php?button=showZvFotos&zvg_id=${zvgId}`,
-      gerichtsdokumente: `${baseUrl}/index.php?button=showZvDokumente&zvg_id=${zvgId}`,
+      gutachten: {
+        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=gutachten`,
+        label: UI_TEXT.expertReport
+      },
+      expose: {
+        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=expose`,
+        label: UI_TEXT.expose
+      },
+      fotos: {
+        url: `${baseUrl}/index.php?button=showZvFotos&zvg_id=${zvgId}`,
+        label: UI_TEXT.photos
+      },
+      gerichtsdokumente: {
+        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=dokumente`,
+        label: UI_TEXT.courtDocuments
+      },
     };
   };
 
@@ -1191,13 +1324,11 @@ function ForeclosureDetail({ foreclosure }) {
 
   // Generate extended object details
   const generateObjectDetails = () => {
-    // Parse area from description if available
     const areaMatch = foreclosure.beschreibung?.match(/(\d+)\s*m²/);
     const area = areaMatch ? areaMatch[1] : null;
     
-    // Generate realistic details based on object type
     const details = {
-      area: area ? `${area} m²` : "Nicht angegeben",
+      area: area ? `${area} m²` : null,
       rooms: null,
       floors: null,
       yearBuilt: null,
@@ -1211,9 +1342,7 @@ function ForeclosureDetail({ foreclosure }) {
       energyClass: null,
     };
 
-    // Set details based on object type
     if (["3", "1", "2", "19", "4"].includes(foreclosure.objekt_typ_id)) {
-      // Houses
       details.rooms = Math.floor(Math.random() * 5) + 3;
       details.floors = Math.floor(Math.random() * 2) + 1;
       details.yearBuilt = 1960 + Math.floor(Math.random() * 60);
@@ -1226,7 +1355,6 @@ function ForeclosureDetail({ foreclosure }) {
       details.energyClass = ["A", "B", "C", "D", "E", "F"][Math.floor(Math.random() * 6)];
       details.features = ["Garten", "Terrasse", "Balkon", "Kamin"].filter(() => Math.random() > 0.5);
     } else if (["5", "6", "7"].includes(foreclosure.objekt_typ_id)) {
-      // Apartments
       details.rooms = foreclosure.objekt_typ_id === "5" ? Math.floor(Math.random() * 2) + 1 : 
                      foreclosure.objekt_typ_id === "6" ? Math.floor(Math.random() * 2) + 3 : 
                      Math.floor(Math.random() * 3) + 5;
@@ -1240,11 +1368,9 @@ function ForeclosureDetail({ foreclosure }) {
       details.energyClass = ["B", "C", "D", "E"][Math.floor(Math.random() * 4)];
       details.features = ["Balkon", "Aufzug", "Einbauküche"].filter(() => Math.random() > 0.5);
     } else if (["15", "16", "17"].includes(foreclosure.objekt_typ_id)) {
-      // Land
       details.landArea = area ? `${area} m²` : `${Math.floor(Math.random() * 2000) + 500} m²`;
       details.features = ["Erschlossen", "Baurecht vorhanden", "Altlasten geprüft"].filter(() => Math.random() > 0.5);
     } else if (["8", "13", "14"].includes(foreclosure.objekt_typ_id)) {
-      // Commercial
       details.area = area ? `${area} m²` : `${Math.floor(Math.random() * 500) + 100} m²`;
       details.floors = `${Math.floor(Math.random() * 3) + 1} Etage(n)`;
       details.yearBuilt = 1980 + Math.floor(Math.random() * 40);
@@ -1260,42 +1386,40 @@ function ForeclosureDetail({ foreclosure }) {
   return (
     <div className="mt-6 space-y-6" data-testid="foreclosure-detail">
       {/* Classification Badge */}
-      <Badge className={`${CLASSIFICATION_COLORS[foreclosure.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0 text-sm`}>
+      <Badge className={`${CLASSIFICATION_COLORS[foreclosure.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0 text-sm font-semibold`}>
         {CLASSIFICATION_UA[foreclosure.klassifizierung] || foreclosure.klassifizierung}
       </Badge>
 
-      {/* Key Info */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Key Info - Improved Contrast */}
+      <div className="grid grid-cols-2 gap-4 bg-[#F9FAFB] p-4 rounded-lg border border-[#E5E7EB]">
         <DetailItem 
-          icon={<Calendar size={18} />} 
+          icon={<Calendar size={18} className="text-[#0052FF]" />} 
           label={UI_TEXT.date} 
           value={`${foreclosure.termin_datum}${foreclosure.termin_zeit ? ` ${foreclosure.termin_zeit}` : ''}`}
           mono
         />
         <DetailItem 
-          icon={<Bank size={18} />} 
+          icon={<Bank size={18} className="text-[#0052FF]" />} 
           label={UI_TEXT.court} 
           value={foreclosure.gericht}
         />
         <DetailItem 
-          icon={<MapPin size={18} />} 
+          icon={<MapPin size={18} className="text-[#0052FF]" />} 
           label={UI_TEXT.state} 
           value={UI_TEXT.states[foreclosure.bundesland_code] || foreclosure.bundesland}
         />
         <DetailItem 
-          icon={<HouseLine size={18} />} 
+          icon={<HouseLine size={18} className="text-[#0052FF]" />} 
           label={UI_TEXT.objectType} 
           value={foreclosure.objekt_typ}
         />
       </div>
 
-      <Separator />
-
       {/* Address if available */}
       {(foreclosure.adresse || foreclosure.plz || foreclosure.ort) && (
-        <div className="space-y-2">
-          <h4 className="overline">{UI_TEXT.address}</h4>
-          <p className="text-sm">
+        <div className="bg-white p-4 rounded-lg border border-[#E5E7EB]">
+          <h4 className="text-xs uppercase tracking-wider font-semibold text-[#374151] mb-2">{UI_TEXT.address}</h4>
+          <p className="text-sm text-[#111827] font-medium">
             {foreclosure.adresse && <span>{foreclosure.adresse}<br /></span>}
             {foreclosure.plz} {foreclosure.ort}
           </p>
@@ -1304,116 +1428,114 @@ function ForeclosureDetail({ foreclosure }) {
 
       {/* Description */}
       {foreclosure.beschreibung && (
-        <div className="space-y-2">
-          <h4 className="overline">{UI_TEXT.description}</h4>
-          <p className="text-sm text-[#6B7280]">{foreclosure.beschreibung}</p>
+        <div className="bg-white p-4 rounded-lg border border-[#E5E7EB]">
+          <h4 className="text-xs uppercase tracking-wider font-semibold text-[#374151] mb-2">{UI_TEXT.description}</h4>
+          <p className="text-sm text-[#111827]">{foreclosure.beschreibung}</p>
         </div>
       )}
 
-      {/* Verkehrswert */}
+      {/* Verkehrswert - High Contrast */}
       {foreclosure.verkehrswert && (
-        <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-md p-4">
-          <div className="flex items-center gap-2 text-[#6B7280] text-xs uppercase tracking-wider mb-1">
-            <CurrencyEur size={14} />
+        <div className="bg-[#0052FF] text-white rounded-lg p-5">
+          <div className="flex items-center gap-2 text-blue-100 text-xs uppercase tracking-wider mb-2">
+            <CurrencyEur size={16} />
             {UI_TEXT.marketValue}
           </div>
-          <div className="text-2xl font-semibold font-mono text-[#111827]">
+          <div className="text-3xl font-bold font-mono">
             {foreclosure.verkehrswert}
           </div>
         </div>
       )}
 
-      <Separator />
-
-      {/* Extended Object Details */}
+      {/* Extended Object Details - Improved Contrast */}
       <Accordion type="single" collapsible defaultValue="object-details" className="w-full">
-        <AccordionItem value="object-details" className="border border-[#E5E7EB] rounded-md">
-          <AccordionTrigger className="px-4 hover:no-underline">
+        <AccordionItem value="object-details" className="border border-[#E5E7EB] rounded-lg bg-white">
+          <AccordionTrigger className="px-4 hover:no-underline hover:bg-[#F9FAFB] rounded-t-lg">
             <div className="flex items-center gap-2">
               <Info size={18} className="text-[#0052FF]" />
-              <span className="font-semibold">{UI_TEXT.objectDetails}</span>
+              <span className="font-semibold text-[#111827]">{UI_TEXT.objectDetails}</span>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4">
             <div className="grid grid-cols-2 gap-4 mt-2">
               {objectDetails.livingArea && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Ruler size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.livingArea}:</span>
-                  <span className="font-medium">{objectDetails.livingArea}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <Ruler size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.livingArea}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.livingArea}</span>
                 </div>
               )}
               {objectDetails.landArea && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.landArea}:</span>
-                  <span className="font-medium">{objectDetails.landArea}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <MapPin size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.landArea}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.landArea}</span>
                 </div>
               )}
               {objectDetails.rooms && (
-                <div className="flex items-center gap-2 text-sm">
-                  <BuildingOffice size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.rooms}:</span>
-                  <span className="font-medium">{objectDetails.rooms}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <BuildingOffice size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.rooms}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.rooms}</span>
                 </div>
               )}
               {objectDetails.floors && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Buildings size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.floors}:</span>
-                  <span className="font-medium">{objectDetails.floors}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <Buildings size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.floors}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.floors}</span>
                 </div>
               )}
               {objectDetails.yearBuilt && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.yearBuilt}:</span>
-                  <span className="font-medium">{objectDetails.yearBuilt}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <Calendar size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.yearBuilt}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.yearBuilt}</span>
                 </div>
               )}
               {objectDetails.condition && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Info size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.condition}:</span>
-                  <span className="font-medium">{objectDetails.condition}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <Info size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.condition}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.condition}</span>
                 </div>
               )}
               {objectDetails.heating && (
-                <div className="flex items-center gap-2 text-sm">
-                  <House size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.heating}:</span>
-                  <span className="font-medium">{objectDetails.heating}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <House size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.heating}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.heating}</span>
                 </div>
               )}
               {objectDetails.energyClass && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Tag size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.energyClass}:</span>
-                  <Badge variant="outline" className="ml-1">{objectDetails.energyClass}</Badge>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <Tag size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.energyClass}:</span>
+                  <Badge variant="outline" className="ml-1 font-semibold">{objectDetails.energyClass}</Badge>
                 </div>
               )}
               {objectDetails.basement && (
-                <div className="flex items-center gap-2 text-sm">
-                  <House size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.basement}:</span>
-                  <span className="font-medium">{objectDetails.basement}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <House size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.basement}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.basement}</span>
                 </div>
               )}
               {objectDetails.garage && (
-                <div className="flex items-center gap-2 text-sm">
-                  <House size={16} className="text-[#6B7280]" />
-                  <span className="text-[#6B7280]">{UI_TEXT.parking}:</span>
-                  <span className="font-medium">{objectDetails.garage}</span>
+                <div className="flex items-center gap-2 text-sm bg-[#F9FAFB] p-2 rounded">
+                  <House size={16} className="text-[#0052FF]" />
+                  <span className="text-[#374151]">{UI_TEXT.parking}:</span>
+                  <span className="font-semibold text-[#111827]">{objectDetails.garage}</span>
                 </div>
               )}
             </div>
             
             {objectDetails.features && objectDetails.features.length > 0 && (
               <div className="mt-4">
-                <span className="text-sm text-[#6B7280]">{UI_TEXT.features}:</span>
+                <span className="text-sm text-[#374151] font-medium">{UI_TEXT.features}:</span>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {objectDetails.features.map((feature, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">
+                    <Badge key={idx} className="bg-[#E0E7FF] text-[#0052FF] border-0 font-medium">
                       {feature}
                     </Badge>
                   ))}
@@ -1424,37 +1546,39 @@ function ForeclosureDetail({ foreclosure }) {
         </AccordionItem>
       </Accordion>
 
-      <Separator />
-
-      {/* Documents Section */}
-      <div className="space-y-3">
-        <h4 className="overline flex items-center gap-2">
-          <FileText size={16} />
+      {/* Documents Section - PDF Links */}
+      <div className="bg-white p-4 rounded-lg border border-[#E5E7EB]">
+        <h4 className="text-xs uppercase tracking-wider font-semibold text-[#374151] mb-3 flex items-center gap-2">
+          <FileText size={16} className="text-[#0052FF]" />
           {UI_TEXT.documents}
         </h4>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <DocumentLink
-            icon={<FilePdf size={18} />}
-            label={UI_TEXT.expertReport}
-            href={documentLinks.gutachten}
+            icon={<FilePdf size={20} />}
+            label={documentLinks.gutachten.label}
+            href={documentLinks.gutachten.url}
+            isPdf={true}
             testId="doc-gutachten"
           />
           <DocumentLink
-            icon={<FileText size={18} />}
-            label={UI_TEXT.expose}
-            href={documentLinks.expose}
+            icon={<FilePdf size={20} />}
+            label={documentLinks.expose.label}
+            href={documentLinks.expose.url}
+            isPdf={true}
             testId="doc-expose"
           />
           <DocumentLink
-            icon={<Image size={18} />}
-            label={UI_TEXT.photos}
-            href={documentLinks.fotos}
+            icon={<Image size={20} />}
+            label={documentLinks.fotos.label}
+            href={documentLinks.fotos.url}
+            isPdf={false}
             testId="doc-fotos"
           />
           <DocumentLink
-            icon={<FileText size={18} />}
-            label={UI_TEXT.courtDocuments}
-            href={documentLinks.gerichtsdokumente}
+            icon={<FilePdf size={20} />}
+            label={documentLinks.gerichtsdokumente.label}
+            href={documentLinks.gerichtsdokumente.url}
+            isPdf={true}
             testId="doc-gerichtsdokumente"
           />
         </div>
@@ -1463,8 +1587,7 @@ function ForeclosureDetail({ foreclosure }) {
       {/* Main Portal Link */}
       {foreclosure.link && (
         <Button
-          variant="outline"
-          className="w-full"
+          className="w-full bg-[#111827] hover:bg-[#1F2937] text-white"
           onClick={() => window.open(foreclosure.link, '_blank')}
           data-testid="open-portal-link"
         >
@@ -1477,19 +1600,22 @@ function ForeclosureDetail({ foreclosure }) {
   );
 }
 
-// Document Link Component
-function DocumentLink({ icon, label, href, testId }) {
+// Document Link Component - Enhanced for PDF
+function DocumentLink({ icon, label, href, isPdf, testId }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2 p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md hover:bg-[#F3F4F6] hover:border-[#D1D5DB] transition-colors text-sm"
+      className="flex items-center gap-3 p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6] hover:border-[#D1D5DB] transition-colors group"
       data-testid={testId}
     >
-      <span className="text-[#0052FF]">{icon}</span>
-      <span className="text-[#111827]">{label}</span>
-      <CaretRight size={14} className="ml-auto text-[#6B7280]" />
+      <span className={`${isPdf ? 'text-red-600' : 'text-[#0052FF]'}`}>{icon}</span>
+      <span className="text-[#111827] font-medium flex-1">{label}</span>
+      {isPdf && (
+        <Download size={16} className="text-[#9CA3AF] group-hover:text-[#111827]" />
+      )}
+      <CaretRight size={16} className="text-[#9CA3AF] group-hover:text-[#111827]" />
     </a>
   );
 }
@@ -1514,11 +1640,11 @@ function StatCard({ icon, label, value, testId }) {
 function DetailItem({ icon, label, value, mono }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-[#6B7280]">
+      <div className="flex items-center gap-1.5">
         {icon}
-        <span className="text-xs uppercase tracking-wider">{label}</span>
+        <span className="text-xs uppercase tracking-wider font-semibold text-[#374151]">{label}</span>
       </div>
-      <p className={`text-sm text-[#111827] ${mono ? 'font-mono' : ''}`}>{value}</p>
+      <p className={`text-sm text-[#111827] font-medium ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }

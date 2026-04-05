@@ -134,6 +134,80 @@ class ZVGAPITester:
         
         return success1 and success2
 
+    def test_price_range_filters(self):
+        """Test price range filtering functionality"""
+        # Test price_min filter
+        success1, data1 = self.run_test("Get Foreclosures (price_min=100000)", "GET", "foreclosures", 200, params={"price_min": 100000})
+        
+        # Test price_max filter  
+        success2, data2 = self.run_test("Get Foreclosures (price_max=300000)", "GET", "foreclosures", 200, params={"price_max": 300000})
+        
+        # Test price range filter
+        success3, data3 = self.run_test("Get Foreclosures (price range 100k-300k)", "GET", "foreclosures", 200, params={"price_min": 100000, "price_max": 300000})
+        
+        if success1 and success2 and success3:
+            print(f"   Price filters working: min={len(data1)}, max={len(data2)}, range={len(data3)} results")
+            return True
+        return False
+
+    def test_search_filter(self):
+        """Test search functionality across multiple fields"""
+        # Test search by court name
+        success1, data1 = self.run_test("Search by court (Stuttgart)", "GET", "foreclosures", 200, params={"search": "Stuttgart"})
+        
+        # Test search by case number pattern
+        success2, data2 = self.run_test("Search by case number (K)", "GET", "foreclosures", 200, params={"search": "K"})
+        
+        # Test search by city
+        success3, data3 = self.run_test("Search by city (München)", "GET", "foreclosures", 200, params={"search": "München"})
+        
+        if success1 and success2 and success3:
+            print(f"   Search filters working: court={len(data1)}, case={len(data2)}, city={len(data3)} results")
+            return True
+        return False
+
+    def test_all_16_states_available(self):
+        """Test that all 16 German states are available"""
+        success, data = self.run_test("Get All Bundesländer", "GET", "bundeslaender", 200)
+        if success and isinstance(data, list):
+            expected_states = 16
+            actual_states = len(data)
+            if actual_states == expected_states:
+                print(f"   ✅ All {expected_states} German states available")
+                # Print state codes for verification
+                state_codes = [state.get('code', '') for state in data]
+                expected_codes = ['bw', 'by', 'he', 'rp', 'th', 'sn', 'nw', 'ni', 'st', 'br', 'be', 'sh', 'mv', 'hb', 'hh', 'sl']
+                missing_codes = [code for code in expected_codes if code not in state_codes]
+                if missing_codes:
+                    print(f"   ⚠️  Missing state codes: {missing_codes}")
+                    return False
+                else:
+                    print(f"   ✅ All expected state codes present: {sorted(state_codes)}")
+                return True
+            else:
+                print(f"   ❌ Expected {expected_states} states, found {actual_states}")
+                return False
+        return False
+
+    def test_filter_combinations(self):
+        """Test combining multiple filters"""
+        # Test state + price filter combination
+        success1, data1 = self.run_test("Combined filter (state+price)", "GET", "foreclosures", 200, 
+                                       params={"bundesland": "bw", "price_min": 50000, "price_max": 200000})
+        
+        # Test state + search filter combination
+        success2, data2 = self.run_test("Combined filter (state+search)", "GET", "foreclosures", 200,
+                                       params={"bundesland": "by", "search": "München"})
+        
+        # Test all filters combined
+        success3, data3 = self.run_test("All filters combined", "GET", "foreclosures", 200,
+                                       params={"bundesland": "bw", "klassifizierung": "Wohnhäuser", "price_min": 100000, "search": "Stuttgart"})
+        
+        if success1 and success2 and success3:
+            print(f"   Filter combinations working: state+price={len(data1)}, state+search={len(data2)}, all={len(data3)} results")
+            return True
+        return False
+
     def test_classification_rules(self):
         """Test classification rules endpoint"""
         success, data = self.run_test("Get Classification Rules", "GET", "classification-rules", 200)
@@ -225,10 +299,14 @@ def main():
     tests = [
         tester.test_root_endpoint,
         tester.test_bundeslaender,
+        tester.test_all_16_states_available,  # New test for all 16 states
         tester.test_objekt_typen,
         tester.test_statistics,
         tester.test_foreclosures,
         tester.test_foreclosures_with_filters,
+        tester.test_price_range_filters,  # New test for price filters
+        tester.test_search_filter,  # New test for search functionality
+        tester.test_filter_combinations,  # New test for filter combinations
         tester.test_classification_rules,
         tester.test_settings,
         tester.test_notifications,

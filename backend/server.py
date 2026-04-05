@@ -95,7 +95,7 @@ class Settings(BaseModel):
     id: str = "settings"
     email_notifications_enabled: bool = False
     notification_email: Optional[str] = None
-    selected_bundeslaender: List[str] = ["bw", "by", "he", "rp"]
+    selected_bundeslaender: List[str] = ["bw", "by", "he", "rp", "th", "sn", "nw", "ni", "st", "br", "be", "sh", "mv"]
 
 class SettingsUpdate(BaseModel):
     email_notifications_enabled: Optional[bool] = None
@@ -127,7 +127,19 @@ BUNDESLAENDER = {
     "bw": "Baden-Württemberg",
     "by": "Bayern",
     "he": "Hessen",
-    "rp": "Rheinland-Pfalz"
+    "rp": "Rheinland-Pfalz",
+    "th": "Thüringen",
+    "sn": "Sachsen",
+    "nw": "Nordrhein-Westfalen",
+    "ni": "Niedersachsen",
+    "st": "Sachsen-Anhalt",
+    "br": "Brandenburg",
+    "be": "Berlin",
+    "sh": "Schleswig-Holstein",
+    "mv": "Mecklenburg-Vorpommern",
+    "hb": "Bremen",
+    "hh": "Hamburg",
+    "sl": "Saarland"
 }
 
 OBJEKT_TYPEN = {
@@ -377,7 +389,10 @@ async def get_foreclosures(
     objekt_typ: Optional[str] = None,
     klassifizierung: Optional[str] = None,
     date_from: Optional[str] = None,
-    date_to: Optional[str] = None
+    date_to: Optional[str] = None,
+    price_min: Optional[int] = None,
+    price_max: Optional[int] = None,
+    search: Optional[str] = None
 ):
     """Get all foreclosures with optional filters"""
     query = {}
@@ -388,8 +403,35 @@ async def get_foreclosures(
         query["objekt_typ_id"] = objekt_typ
     if klassifizierung:
         query["klassifizierung"] = klassifizierung
+    if search:
+        query["$or"] = [
+            {"aktenzeichen": {"$regex": search, "$options": "i"}},
+            {"gericht": {"$regex": search, "$options": "i"}},
+            {"ort": {"$regex": search, "$options": "i"}},
+            {"beschreibung": {"$regex": search, "$options": "i"}}
+        ]
     
-    foreclosures = await db.foreclosures.find(query, {"_id": 0}).sort("termin_datum", -1).to_list(500)
+    foreclosures = await db.foreclosures.find(query, {"_id": 0}).sort("termin_datum", -1).to_list(1000)
+    
+    # Filter by price (post-query since verkehrswert is stored as string)
+    if price_min is not None or price_max is not None:
+        filtered = []
+        for f in foreclosures:
+            if f.get('verkehrswert'):
+                # Parse price from string like "123.456 €"
+                try:
+                    price_str = f['verkehrswert'].replace('€', '').replace('.', '').replace(',', '').strip()
+                    price = int(price_str)
+                    if price_min is not None and price < price_min:
+                        continue
+                    if price_max is not None and price > price_max:
+                        continue
+                    filtered.append(f)
+                except:
+                    filtered.append(f)  # Include if price can't be parsed
+            else:
+                filtered.append(f)  # Include if no price
+        foreclosures = filtered
     
     # Convert datetime to string
     for f in foreclosures:
@@ -531,12 +573,12 @@ async def get_settings():
     try:
         settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
         if not settings:
-            # Create default settings
+            # Create default settings with all states
             default_settings = {
                 "id": "settings",
                 "email_notifications_enabled": False,
                 "notification_email": None,
-                "selected_bundeslaender": ["bw", "by", "he", "rp"]
+                "selected_bundeslaender": ["bw", "by", "he", "rp", "th", "sn", "nw", "ni", "st", "br", "be", "sh", "mv"]
             }
             await db.settings.insert_one(default_settings)
             return default_settings
@@ -548,7 +590,7 @@ async def get_settings():
             "id": "settings",
             "email_notifications_enabled": False,
             "notification_email": None,
-            "selected_bundeslaender": ["bw", "by", "he", "rp"]
+            "selected_bundeslaender": ["bw", "by", "he", "rp", "th", "sn", "nw", "ni", "st", "br", "be", "sh", "mv"]
         }
 
 @api_router.put("/settings")
