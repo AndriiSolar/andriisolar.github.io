@@ -327,16 +327,21 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
         termin_datum = termin_date.strftime("%d.%m.%Y")
         termin_zeit = f"{random.randint(9, 14)}:{random.choice(['00', '30'])} Uhr"
         
-        # Generate aktenzeichen
-        abt = random.randint(1, 5)
-        nr = random.randint(1, 200)
-        jahr = random.randint(2023, 2025)
-        aktenzeichen = f"{abt} K {nr:03d}/{jahr}"
+        # Generate aktenzeichen - realistic German court format
+        abt = random.randint(1, 9)
+        buchstabe = random.choice(['', 'a', 'b', 'c'])
+        nr = random.randint(1, 999)
+        jahr = random.randint(2022, 2025)
+        # Format: "007 K 0123/2024" or "3a K 45/2023"
+        aktenzeichen = f"{abt:03d}{buchstabe} K {nr:04d}/{jahr}"
         
         # Generate verkehrswert
         verkehrswert_range = objekt[2]
         min_val, max_val = verkehrswert_range.replace("€", "").replace(".", "").replace(" ", "").split("-")
         verkehrswert = f"{random.randint(int(min_val), int(max_val)):,} €".replace(",", ".")
+        
+        # Generate unique zvg_id for link
+        zvg_id = random.randint(100000, 999999)
         
         results.append({
             "aktenzeichen": aktenzeichen,
@@ -351,7 +356,7 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
             "plz": plz,
             "ort": ort,
             "verkehrswert": verkehrswert,
-            "link": f"https://www.zvg-portal.de/index.php?button=showZv498&zvg_id={random.randint(10000, 99999)}"
+            "link": f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={bundesland_code}"
         })
     
     return results

@@ -725,6 +725,7 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                 <TableHead className="text-[#374151] font-semibold">{UI_TEXT.location}</TableHead>
                 <TableHead className="text-[#374151] font-semibold">{UI_TEXT.type}</TableHead>
                 <TableHead className="text-right text-[#374151] font-semibold">{UI_TEXT.marketValue}</TableHead>
+                <TableHead className="text-center text-[#374151] font-semibold">Link</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -744,6 +745,21 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-[#111827] font-semibold">{f.verkehrswert || "-"}</TableCell>
+                  <TableCell className="text-center">
+                    {f.link && (
+                      <a
+                        href={f.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#E0E7FF] transition-colors"
+                        title="Відкрити в ZVG-порталі"
+                        data-testid={`link-${f.id}`}
+                      >
+                        <LinkIcon size={16} className="text-[#0052FF]" />
+                      </a>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -899,6 +915,7 @@ function TermineView({
                 <TableHead className="text-[#374151] font-semibold">{UI_TEXT.objectType}</TableHead>
                 <TableHead className="text-[#374151] font-semibold">{UI_TEXT.category}</TableHead>
                 <TableHead className="text-right text-[#374151] font-semibold">{UI_TEXT.marketValue}</TableHead>
+                <TableHead className="text-center text-[#374151] font-semibold">Link</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -926,6 +943,21 @@ function TermineView({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm font-semibold text-[#111827]">{f.verkehrswert || "-"}</TableCell>
+                  <TableCell className="text-center">
+                    {f.link && (
+                      <a
+                        href={f.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#E0E7FF] transition-colors"
+                        title="Відкрити в ZVG-порталі"
+                        data-testid={`link-${f.id}`}
+                      >
+                        <LinkIcon size={16} className="text-[#0052FF]" />
+                      </a>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <CaretRight size={16} className="text-[#9CA3AF]" />
                   </TableCell>
