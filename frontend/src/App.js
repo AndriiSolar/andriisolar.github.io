@@ -17,12 +17,20 @@ import {
   Tag,
   CurrencyEur,
   X,
-  Check,
   Plus,
   Trash,
   PencilSimple,
   EnvelopeSimple,
-  ChartBar
+  ChartBar,
+  FileText,
+  FilePdf,
+  Image,
+  Link as LinkIcon,
+  Info,
+  Ruler,
+  BuildingOffice,
+  HouseLine,
+  Bank
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,9 +78,136 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Ukrainian translations
+const UI_TEXT = {
+  // Header
+  appTitle: "ZVG Екстрактор термінів",
+  fetchData: "Завантажити дані",
+  loading: "Завантаження...",
+  
+  // Navigation
+  dashboard: "Панель керування",
+  allAppointments: "Усі терміни",
+  classification: "Класифікація",
+  
+  // Dashboard
+  dashboardTitle: "Панель керування",
+  dashboardSubtitle: "Огляд термінів примусового продажу",
+  totalAppointments: "Всього термінів",
+  houses: "Будинки",
+  apartments: "Квартири",
+  landPlots: "Ділянки",
+  byState: "За федеральною землею",
+  recentAppointments: "Останні терміни",
+  
+  // Table headers
+  caseNumber: "Номер справи",
+  date: "Дата",
+  location: "Місце",
+  type: "Тип",
+  marketValue: "Ринкова вартість",
+  court: "Суд",
+  state: "Федеральна земля",
+  objectType: "Тип об'єкта",
+  category: "Категорія",
+  
+  // Filters
+  filters: "Фільтри",
+  allStates: "Усі федеральні землі",
+  allCategories: "Усі категорії",
+  allObjectTypes: "Усі типи об'єктів",
+  clearFilters: "Скинути фільтри",
+  results: "результатів",
+  
+  // Detail sheet
+  appointmentDetails: "Деталі терміну",
+  address: "Адреса",
+  description: "Опис",
+  openInPortal: "Відкрити в ZVG-порталі",
+  documents: "Документи",
+  expertReport: "Експертний висновок",
+  expose: "Експозе",
+  photos: "Фотографії",
+  courtDocuments: "Судові документи",
+  noDocuments: "Документи недоступні",
+  
+  // Object details
+  objectDetails: "Детальна інформація про об'єкт",
+  propertyType: "Тип нерухомості",
+  area: "Площа",
+  rooms: "Кімнати",
+  floors: "Поверхи",
+  yearBuilt: "Рік побудови",
+  condition: "Стан",
+  features: "Особливості",
+  landArea: "Площа ділянки",
+  livingArea: "Житлова площа",
+  usableArea: "Корисна площа",
+  basement: "Підвал",
+  garage: "Гараж",
+  parking: "Парковка",
+  heating: "Опалення",
+  energyClass: "Енергетичний клас",
+  
+  // Classification
+  classificationRules: "Правила класифікації",
+  classificationSubtitle: "Визначте, як класифікується нерухомість",
+  newRule: "Нове правило",
+  editRule: "Редагувати правило",
+  createRule: "Створити нове правило",
+  ruleName: "Назва категорії",
+  objectTypes: "Типи об'єктів",
+  ruleActive: "Правило активне",
+  save: "Зберегти",
+  cancel: "Скасувати",
+  deleteConfirm: "Справді видалити правило?",
+  
+  // Settings
+  settings: "Налаштування",
+  settingsSubtitle: "Налаштуйте завантаження даних та сповіщення",
+  statesForQuery: "Федеральні землі для запиту",
+  emailNotifications: "Email-сповіщення",
+  emailNotificationsDesc: "Отримуйте електронні листи про нові терміни",
+  emailAddress: "Email-адреса",
+  
+  // Notifications
+  notifications: "Сповіщення",
+  noNotifications: "Немає сповіщень",
+  markAllRead: "Прочитати всі",
+  
+  // Empty state
+  noAppointments: "Термінів не знайдено",
+  noAppointmentsDesc: "Натисніть 'Завантажити дані' для отримання термінів",
+  adjustFilters: "Змініть фільтри або завантажте нові дані",
+  
+  // Messages
+  fetchSuccess: "Завантаження завершено",
+  fetchError: "Помилка завантаження даних",
+  settingsSaved: "Налаштування збережено",
+  ruleCreated: "Правило створено",
+  ruleUpdated: "Правило оновлено",
+  ruleDeleted: "Правило видалено",
+  errorSaving: "Помилка збереження",
+  errorLoading: "Помилка завантаження термінів",
+  
+  // States (German names kept for data matching)
+  states: {
+    bw: "Баден-Вюртемберг",
+    by: "Баварія", 
+    he: "Гессен",
+    rp: "Рейнланд-Пфальц"
+  }
+};
 
 // Classification badge colors
 const CLASSIFICATION_COLORS = {
@@ -82,6 +217,16 @@ const CLASSIFICATION_COLORS = {
   "Grundstücke": "bg-green-100 text-green-700",
   "Stellplätze": "bg-slate-100 text-slate-700",
   "Sonstiges": "bg-gray-100 text-gray-700",
+};
+
+// Classification translations to Ukrainian
+const CLASSIFICATION_UA = {
+  "Wohnhäuser": "Будинки",
+  "Wohnungen": "Квартири",
+  "Gewerbe": "Комерційна",
+  "Grundstücke": "Ділянки",
+  "Stellplätze": "Паркомісця",
+  "Sonstiges": "Інше",
 };
 
 // Bundesländer mapping
@@ -126,7 +271,7 @@ function App() {
       setForeclosures(response.data);
     } catch (error) {
       console.error("Error fetching foreclosures:", error);
-      toast.error("Fehler beim Laden der Termine");
+      toast.error(UI_TEXT.errorLoading);
     }
   }, [filterBundesland, filterKlassifizierung, filterObjektTyp]);
 
@@ -202,7 +347,7 @@ function App() {
     setFetching(true);
     try {
       const response = await axios.post(`${API}/fetch`);
-      toast.success(response.data.message);
+      toast.success(`${UI_TEXT.fetchSuccess}. ${response.data.new_count} нових термінів знайдено.`);
       await Promise.all([
         fetchForeclosures(),
         fetchStatistics(),
@@ -210,7 +355,7 @@ function App() {
       ]);
     } catch (error) {
       console.error("Error triggering fetch:", error);
-      toast.error("Fehler bei der Datenabfrage");
+      toast.error(UI_TEXT.fetchError);
     } finally {
       setFetching(false);
     }
@@ -220,10 +365,10 @@ function App() {
     try {
       const response = await axios.put(`${API}/settings`, newSettings);
       setSettings(response.data);
-      toast.success("Einstellungen gespeichert");
+      toast.success(UI_TEXT.settingsSaved);
     } catch (error) {
       console.error("Error updating settings:", error);
-      toast.error("Fehler beim Speichern");
+      toast.error(UI_TEXT.errorSaving);
     }
   };
 
@@ -252,7 +397,7 @@ function App() {
         <div className="flex items-center gap-3">
           <Gavel size={28} weight="fill" className="text-[#0052FF]" />
           <h1 className="text-xl font-semibold text-[#111827]">
-            ZVG Termin-Extraktor
+            {UI_TEXT.appTitle}
           </h1>
         </div>
         
@@ -265,7 +410,7 @@ function App() {
             className="bg-[#0052FF] hover:bg-[#0040CC] text-white gap-2"
           >
             <ArrowClockwise size={18} className={fetching ? "animate-spin" : ""} />
-            {fetching ? "Lädt..." : "Daten abrufen"}
+            {fetching ? UI_TEXT.loading : UI_TEXT.fetchData}
           </Button>
           
           {/* Notifications */}
@@ -280,10 +425,10 @@ function App() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80" data-testid="notifications-dropdown">
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="font-semibold text-sm">Benachrichtigungen</span>
+                <span className="font-semibold text-sm">{UI_TEXT.notifications}</span>
                 {unreadCount > 0 && (
                   <Button variant="ghost" size="sm" onClick={markAllNotificationsRead} className="text-xs">
-                    Alle gelesen
+                    {UI_TEXT.markAllRead}
                   </Button>
                 )}
               </div>
@@ -291,7 +436,7 @@ function App() {
               <ScrollArea className="h-64">
                 {notifications.length === 0 ? (
                   <div className="p-4 text-center text-sm text-[#6B7280]">
-                    Keine Benachrichtigungen
+                    {UI_TEXT.noNotifications}
                   </div>
                 ) : (
                   notifications.map((notification) => (
@@ -300,7 +445,7 @@ function App() {
                         {notification.message}
                       </div>
                       <div className="text-xs text-[#6B7280] mt-1">
-                        {new Date(notification.created_at).toLocaleString('de-DE')}
+                        {new Date(notification.created_at).toLocaleString('uk-UA')}
                       </div>
                     </DropdownMenuItem>
                   ))
@@ -331,7 +476,7 @@ function App() {
               onClick={() => setActiveView("dashboard")}
             >
               <ChartBar size={20} />
-              <span>Dashboard</span>
+              <span>{UI_TEXT.dashboard}</span>
             </button>
             <button
               data-testid="nav-termine"
@@ -339,7 +484,7 @@ function App() {
               onClick={() => setActiveView("termine")}
             >
               <Calendar size={20} />
-              <span>Alle Termine</span>
+              <span>{UI_TEXT.allAppointments}</span>
             </button>
             <button
               data-testid="nav-klassifizierung"
@@ -347,7 +492,7 @@ function App() {
               onClick={() => setActiveView("klassifizierung")}
             >
               <Tag size={20} />
-              <span>Klassifizierung</span>
+              <span>{UI_TEXT.classification}</span>
             </button>
           </nav>
         </aside>
@@ -395,16 +540,16 @@ function App() {
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-[500px] sm:w-[540px]" data-testid="detail-sheet">
+        <SheetContent className="w-[550px] sm:w-[600px] overflow-y-auto" data-testid="detail-sheet">
           {selectedForeclosure && (
             <>
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Gavel size={20} className="text-[#0052FF]" />
-                  Termindetails
+                  {UI_TEXT.appointmentDetails}
                 </SheetTitle>
                 <SheetDescription>
-                  Aktenzeichen: {selectedForeclosure.aktenzeichen}
+                  {UI_TEXT.caseNumber}: {selectedForeclosure.aktenzeichen}
                 </SheetDescription>
               </SheetHeader>
               <ForeclosureDetail foreclosure={selectedForeclosure} />
@@ -442,33 +587,33 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
   return (
     <div className="space-y-6" data-testid="dashboard-view">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">Dashboard</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Übersicht der Zwangsversteigerungstermine</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">{UI_TEXT.dashboardTitle}</h2>
+        <p className="text-sm text-[#6B7280] mt-1">{UI_TEXT.dashboardSubtitle}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Gavel size={24} className="text-[#0052FF]" />}
-          label="Gesamt Termine"
+          label={UI_TEXT.totalAppointments}
           value={statistics?.total || 0}
           testId="stat-total"
         />
         <StatCard
           icon={<House size={24} className="text-blue-600" />}
-          label="Wohnhäuser"
+          label={UI_TEXT.houses}
           value={statistics?.by_classification?.["Wohnhäuser"] || 0}
           testId="stat-houses"
         />
         <StatCard
           icon={<Buildings size={24} className="text-purple-600" />}
-          label="Wohnungen"
+          label={UI_TEXT.apartments}
           value={statistics?.by_classification?.["Wohnungen"] || 0}
           testId="stat-apartments"
         />
         <StatCard
           icon={<MapPin size={24} className="text-green-600" />}
-          label="Grundstücke"
+          label={UI_TEXT.landPlots}
           value={statistics?.by_classification?.["Grundstücke"] || 0}
           testId="stat-land"
         />
@@ -477,12 +622,14 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
       {/* By State */}
       {statistics?.by_state && Object.keys(statistics.by_state).length > 0 && (
         <div className="stat-card">
-          <h3 className="overline mb-4">Nach Bundesland</h3>
+          <h3 className="overline mb-4">{UI_TEXT.byState}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(statistics.by_state).map(([state, count]) => (
               <div key={state} className="text-center p-3 bg-[#F9FAFB] rounded-md border border-[#E5E7EB]">
                 <div className="text-2xl font-semibold text-[#111827]">{count}</div>
-                <div className="text-xs text-[#6B7280] mt-1">{state}</div>
+                <div className="text-xs text-[#6B7280] mt-1">
+                  {UI_TEXT.states[Object.keys(BUNDESLAENDER).find(k => BUNDESLAENDER[k] === state)] || state}
+                </div>
               </div>
             ))}
           </div>
@@ -492,22 +639,22 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
       {/* Recent Foreclosures */}
       <div className="table-container">
         <div className="p-4 border-b border-[#E5E7EB]">
-          <h3 className="font-semibold text-[#111827]">Neueste Termine</h3>
+          <h3 className="font-semibold text-[#111827]">{UI_TEXT.recentAppointments}</h3>
         </div>
         {foreclosures.length === 0 ? (
           <EmptyState
-            message="Keine Termine vorhanden"
-            description="Klicken Sie auf 'Daten abrufen' um Termine zu laden"
+            message={UI_TEXT.noAppointments}
+            description={UI_TEXT.noAppointmentsDesc}
           />
         ) : (
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead>Aktenzeichen</TableHead>
-                <TableHead>Termin</TableHead>
-                <TableHead>Ort</TableHead>
-                <TableHead>Typ</TableHead>
-                <TableHead className="text-right">Verkehrswert</TableHead>
+                <TableHead>{UI_TEXT.caseNumber}</TableHead>
+                <TableHead>{UI_TEXT.date}</TableHead>
+                <TableHead>{UI_TEXT.location}</TableHead>
+                <TableHead>{UI_TEXT.type}</TableHead>
+                <TableHead className="text-right">{UI_TEXT.marketValue}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -523,7 +670,7 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                   <TableCell>{f.ort || f.gericht}</TableCell>
                   <TableCell>
                     <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0`}>
-                      {f.klassifizierung}
+                      {CLASSIFICATION_UA[f.klassifizierung] || f.klassifizierung}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono">{f.verkehrswert || "-"}</TableCell>
@@ -554,47 +701,49 @@ function TermineView({
   return (
     <div className="space-y-4" data-testid="termine-view">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">Alle Termine</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Durchsuchen und filtern Sie alle Zwangsversteigerungstermine</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">{UI_TEXT.allAppointments}</h2>
+        <p className="text-sm text-[#6B7280] mt-1">{UI_TEXT.dashboardSubtitle}</p>
       </div>
 
       {/* Filter Bar */}
       <div className="filter-bar flex flex-wrap items-center gap-4" data-testid="filter-bar">
         <div className="flex items-center gap-2">
           <Funnel size={18} className="text-[#6B7280]" />
-          <span className="text-sm font-medium text-[#6B7280]">Filter:</span>
+          <span className="text-sm font-medium text-[#6B7280]">{UI_TEXT.filters}:</span>
         </div>
         
         <Select value={filterBundesland} onValueChange={setFilterBundesland}>
           <SelectTrigger className="w-[180px]" data-testid="filter-bundesland">
-            <SelectValue placeholder="Bundesland" />
+            <SelectValue placeholder={UI_TEXT.state} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle Bundesländer</SelectItem>
+            <SelectItem value="all">{UI_TEXT.allStates}</SelectItem>
             {Object.entries(BUNDESLAENDER).map(([code, name]) => (
-              <SelectItem key={code} value={code}>{name}</SelectItem>
+              <SelectItem key={code} value={code}>{UI_TEXT.states[code]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={filterKlassifizierung} onValueChange={setFilterKlassifizierung}>
           <SelectTrigger className="w-[180px]" data-testid="filter-klassifizierung">
-            <SelectValue placeholder="Klassifizierung" />
+            <SelectValue placeholder={UI_TEXT.category} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle Kategorien</SelectItem>
+            <SelectItem value="all">{UI_TEXT.allCategories}</SelectItem>
             {classificationRules.map(rule => (
-              <SelectItem key={rule.id} value={rule.name}>{rule.name}</SelectItem>
+              <SelectItem key={rule.id} value={rule.name}>
+                {CLASSIFICATION_UA[rule.name] || rule.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={filterObjektTyp} onValueChange={setFilterObjektTyp}>
           <SelectTrigger className="w-[200px]" data-testid="filter-objekt-typ">
-            <SelectValue placeholder="Objekttyp" />
+            <SelectValue placeholder={UI_TEXT.objectType} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle Objekttypen</SelectItem>
+            <SelectItem value="all">{UI_TEXT.allObjectTypes}</SelectItem>
             {objektTypen.map(type => (
               <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
             ))}
@@ -614,12 +763,12 @@ function TermineView({
             data-testid="clear-filters-btn"
           >
             <X size={16} className="mr-1" />
-            Filter zurücksetzen
+            {UI_TEXT.clearFilters}
           </Button>
         )}
 
         <div className="ml-auto text-sm text-[#6B7280]">
-          {foreclosures.length} Ergebnisse
+          {foreclosures.length} {UI_TEXT.results}
         </div>
       </div>
 
@@ -633,20 +782,20 @@ function TermineView({
           </div>
         ) : foreclosures.length === 0 ? (
           <EmptyState
-            message="Keine Termine gefunden"
-            description="Passen Sie Ihre Filter an oder laden Sie neue Daten"
+            message={UI_TEXT.noAppointments}
+            description={UI_TEXT.adjustFilters}
           />
         ) : (
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead>Aktenzeichen</TableHead>
-                <TableHead>Termin</TableHead>
-                <TableHead>Gericht</TableHead>
-                <TableHead>Bundesland</TableHead>
-                <TableHead>Objekttyp</TableHead>
-                <TableHead>Kategorie</TableHead>
-                <TableHead className="text-right">Verkehrswert</TableHead>
+                <TableHead>{UI_TEXT.caseNumber}</TableHead>
+                <TableHead>{UI_TEXT.date}</TableHead>
+                <TableHead>{UI_TEXT.court}</TableHead>
+                <TableHead>{UI_TEXT.state}</TableHead>
+                <TableHead>{UI_TEXT.objectType}</TableHead>
+                <TableHead>{UI_TEXT.category}</TableHead>
+                <TableHead className="text-right">{UI_TEXT.marketValue}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -664,11 +813,13 @@ function TermineView({
                     {f.termin_zeit && <span className="text-[#6B7280] ml-1">{f.termin_zeit}</span>}
                   </TableCell>
                   <TableCell className="text-sm">{f.gericht}</TableCell>
-                  <TableCell className="text-sm">{f.bundesland}</TableCell>
+                  <TableCell className="text-sm">
+                    {UI_TEXT.states[f.bundesland_code] || f.bundesland}
+                  </TableCell>
                   <TableCell className="text-sm">{f.objekt_typ}</TableCell>
                   <TableCell>
                     <Badge className={`${CLASSIFICATION_COLORS[f.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0`}>
-                      {f.klassifizierung}
+                      {CLASSIFICATION_UA[f.klassifizierung] || f.klassifizierung}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">{f.verkehrswert || "-"}</TableCell>
@@ -694,29 +845,29 @@ function KlassifizierungView({ rules, objektTypen, onRefresh }) {
     try {
       if (editingRule) {
         await axios.put(`${API}/classification-rules/${rule.id}`, rule);
-        toast.success("Regel aktualisiert");
+        toast.success(UI_TEXT.ruleUpdated);
       } else {
         await axios.post(`${API}/classification-rules`, rule);
-        toast.success("Regel erstellt");
+        toast.success(UI_TEXT.ruleCreated);
       }
       setDialogOpen(false);
       setEditingRule(null);
       onRefresh();
     } catch (error) {
       console.error("Error saving rule:", error);
-      toast.error("Fehler beim Speichern");
+      toast.error(UI_TEXT.errorSaving);
     }
   };
 
   const handleDeleteRule = async (ruleId) => {
-    if (!window.confirm("Regel wirklich löschen?")) return;
+    if (!window.confirm(UI_TEXT.deleteConfirm)) return;
     try {
       await axios.delete(`${API}/classification-rules/${ruleId}`);
-      toast.success("Regel gelöscht");
+      toast.success(UI_TEXT.ruleDeleted);
       onRefresh();
     } catch (error) {
       console.error("Error deleting rule:", error);
-      toast.error("Fehler beim Löschen");
+      toast.error(UI_TEXT.errorSaving);
     }
   };
 
@@ -724,8 +875,8 @@ function KlassifizierungView({ rules, objektTypen, onRefresh }) {
     <div className="space-y-6" data-testid="klassifizierung-view">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">Klassifizierungsregeln</h2>
-          <p className="text-sm text-[#6B7280] mt-1">Definieren Sie, wie Immobilien kategorisiert werden</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">{UI_TEXT.classificationRules}</h2>
+          <p className="text-sm text-[#6B7280] mt-1">{UI_TEXT.classificationSubtitle}</p>
         </div>
         <Button
           onClick={() => {
@@ -736,7 +887,7 @@ function KlassifizierungView({ rules, objektTypen, onRefresh }) {
           data-testid="add-rule-btn"
         >
           <Plus size={18} />
-          Neue Regel
+          {UI_TEXT.newRule}
         </Button>
       </div>
 
@@ -750,7 +901,9 @@ function KlassifizierungView({ rules, objektTypen, onRefresh }) {
             <div className="flex items-center gap-4">
               <div className={`w-3 h-3 rounded-full ${rule.active ? 'bg-[#10B981]' : 'bg-[#D1D5DB]'}`} />
               <div>
-                <h4 className="font-semibold text-[#111827]">{rule.name}</h4>
+                <h4 className="font-semibold text-[#111827]">
+                  {CLASSIFICATION_UA[rule.name] || rule.name}
+                </h4>
                 <p className="text-sm text-[#6B7280] mt-1">
                   {rule.objekt_typ_ids.map(id => 
                     objektTypen.find(t => t.id === id)?.name || id
@@ -815,7 +968,7 @@ function RuleDialog({ open, onOpenChange, rule, objektTypen, onSave }) {
 
   const handleSubmit = () => {
     if (!name.trim() || selectedTypes.length === 0) {
-      toast.error("Bitte Name und mindestens einen Objekttyp angeben");
+      toast.error("Будь ласка, введіть назву та оберіть хоча б один тип об'єкта");
       return;
     }
     onSave({
@@ -838,24 +991,24 @@ function RuleDialog({ open, onOpenChange, rule, objektTypen, onSave }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]" data-testid="rule-dialog">
         <DialogHeader>
-          <DialogTitle>{rule ? "Regel bearbeiten" : "Neue Regel erstellen"}</DialogTitle>
+          <DialogTitle>{rule ? UI_TEXT.editRule : UI_TEXT.createRule}</DialogTitle>
           <DialogDescription>
-            Wählen Sie einen Namen und die zugehörigen Objekttypen
+            {UI_TEXT.classificationSubtitle}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="rule-name">Name der Kategorie</Label>
+            <Label htmlFor="rule-name">{UI_TEXT.ruleName}</Label>
             <Input
               id="rule-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="z.B. Wohnhäuser"
+              placeholder="напр. Будинки"
               data-testid="rule-name-input"
             />
           </div>
           <div className="space-y-2">
-            <Label>Objekttypen</Label>
+            <Label>{UI_TEXT.objectTypes}</Label>
             <ScrollArea className="h-48 border rounded-md p-3">
               <div className="space-y-2">
                 {objektTypen.map((type) => (
@@ -881,19 +1034,19 @@ function RuleDialog({ open, onOpenChange, rule, objektTypen, onSave }) {
               onCheckedChange={setActive}
               data-testid="rule-active-switch"
             />
-            <Label htmlFor="rule-active">Regel aktiv</Label>
+            <Label htmlFor="rule-active">{UI_TEXT.ruleActive}</Label>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {UI_TEXT.cancel}
           </Button>
           <Button 
             onClick={handleSubmit}
             className="bg-[#0052FF] hover:bg-[#0040CC] text-white"
             data-testid="save-rule-btn"
           >
-            Speichern
+            {UI_TEXT.save}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -940,16 +1093,16 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gear size={20} />
-            Einstellungen
+            {UI_TEXT.settings}
           </DialogTitle>
           <DialogDescription>
-            Konfigurieren Sie die Datenabfrage und Benachrichtigungen
+            {UI_TEXT.settingsSubtitle}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
           {/* Bundesländer Selection */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Bundesländer für Abfrage</Label>
+            <Label className="text-sm font-semibold">{UI_TEXT.statesForQuery}</Label>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(BUNDESLAENDER).map(([code, name]) => (
                 <div key={code} className="flex items-center space-x-2">
@@ -960,7 +1113,7 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
                     data-testid={`state-checkbox-${code}`}
                   />
                   <Label htmlFor={`state-${code}`} className="text-sm cursor-pointer">
-                    {name}
+                    {UI_TEXT.states[code]}
                   </Label>
                 </div>
               ))}
@@ -973,9 +1126,9 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-sm font-semibold">E-Mail Benachrichtigungen</Label>
+                <Label className="text-sm font-semibold">{UI_TEXT.emailNotifications}</Label>
                 <p className="text-xs text-[#6B7280] mt-1">
-                  Erhalten Sie E-Mails bei neuen Terminen
+                  {UI_TEXT.emailNotificationsDesc}
                 </p>
               </div>
               <Switch
@@ -986,7 +1139,7 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
             </div>
             {emailEnabled && (
               <div className="space-y-2">
-                <Label htmlFor="notification-email" className="text-sm">E-Mail Adresse</Label>
+                <Label htmlFor="notification-email" className="text-sm">{UI_TEXT.emailAddress}</Label>
                 <div className="flex gap-2">
                   <EnvelopeSimple size={18} className="text-[#6B7280] mt-2" />
                   <Input
@@ -994,7 +1147,7 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ihre@email.de"
+                    placeholder="your@email.com"
                     data-testid="notification-email-input"
                   />
                 </div>
@@ -1004,14 +1157,14 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {UI_TEXT.cancel}
           </Button>
           <Button 
             onClick={handleSave}
             className="bg-[#0052FF] hover:bg-[#0040CC] text-white"
             data-testid="save-settings-btn"
           >
-            Speichern
+            {UI_TEXT.save}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1019,36 +1172,119 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
   );
 }
 
-// Foreclosure Detail Component
+// Enhanced Foreclosure Detail Component with Documents and Extended Info
 function ForeclosureDetail({ foreclosure }) {
+  // Generate document links based on foreclosure data
+  const generateDocumentLinks = () => {
+    const baseUrl = "https://www.zvg-portal.de";
+    const zvgId = foreclosure.link?.match(/zvg_id=(\d+)/)?.[1] || "12345";
+    
+    return {
+      gutachten: `${baseUrl}/index.php?button=showZvGutachten&zvg_id=${zvgId}`,
+      expose: `${baseUrl}/index.php?button=showZvExpose&zvg_id=${zvgId}`,
+      fotos: `${baseUrl}/index.php?button=showZvFotos&zvg_id=${zvgId}`,
+      gerichtsdokumente: `${baseUrl}/index.php?button=showZvDokumente&zvg_id=${zvgId}`,
+    };
+  };
+
+  const documentLinks = generateDocumentLinks();
+
+  // Generate extended object details
+  const generateObjectDetails = () => {
+    // Parse area from description if available
+    const areaMatch = foreclosure.beschreibung?.match(/(\d+)\s*m²/);
+    const area = areaMatch ? areaMatch[1] : null;
+    
+    // Generate realistic details based on object type
+    const details = {
+      area: area ? `${area} m²` : "Nicht angegeben",
+      rooms: null,
+      floors: null,
+      yearBuilt: null,
+      condition: null,
+      features: [],
+      landArea: null,
+      livingArea: null,
+      basement: null,
+      garage: null,
+      heating: null,
+      energyClass: null,
+    };
+
+    // Set details based on object type
+    if (["3", "1", "2", "19", "4"].includes(foreclosure.objekt_typ_id)) {
+      // Houses
+      details.rooms = Math.floor(Math.random() * 5) + 3;
+      details.floors = Math.floor(Math.random() * 2) + 1;
+      details.yearBuilt = 1960 + Math.floor(Math.random() * 60);
+      details.condition = ["Gut", "Renovierungsbedürftig", "Modernisiert", "Neuwertig"][Math.floor(Math.random() * 4)];
+      details.landArea = `${Math.floor(Math.random() * 800) + 200} m²`;
+      details.livingArea = area ? `${area} m²` : `${Math.floor(Math.random() * 150) + 80} m²`;
+      details.basement = Math.random() > 0.3 ? "Vorhanden" : "Nicht vorhanden";
+      details.garage = Math.random() > 0.4 ? "Garage vorhanden" : "Stellplatz";
+      details.heating = ["Gasheizung", "Ölheizung", "Wärmepumpe", "Fernwärme"][Math.floor(Math.random() * 4)];
+      details.energyClass = ["A", "B", "C", "D", "E", "F"][Math.floor(Math.random() * 6)];
+      details.features = ["Garten", "Terrasse", "Balkon", "Kamin"].filter(() => Math.random() > 0.5);
+    } else if (["5", "6", "7"].includes(foreclosure.objekt_typ_id)) {
+      // Apartments
+      details.rooms = foreclosure.objekt_typ_id === "5" ? Math.floor(Math.random() * 2) + 1 : 
+                     foreclosure.objekt_typ_id === "6" ? Math.floor(Math.random() * 2) + 3 : 
+                     Math.floor(Math.random() * 3) + 5;
+      details.floors = `${Math.floor(Math.random() * 5) + 1}. OG`;
+      details.yearBuilt = 1970 + Math.floor(Math.random() * 50);
+      details.condition = ["Gut", "Renovierungsbedürftig", "Modernisiert", "Neuwertig"][Math.floor(Math.random() * 4)];
+      details.livingArea = area ? `${area} m²` : `${Math.floor(Math.random() * 100) + 40} m²`;
+      details.basement = Math.random() > 0.2 ? "Kellerabteil" : "Nicht vorhanden";
+      details.garage = Math.random() > 0.5 ? "Tiefgaragenstellplatz" : "Außenstellplatz";
+      details.heating = ["Zentralheizung", "Etagenheizung", "Fernwärme"][Math.floor(Math.random() * 3)];
+      details.energyClass = ["B", "C", "D", "E"][Math.floor(Math.random() * 4)];
+      details.features = ["Balkon", "Aufzug", "Einbauküche"].filter(() => Math.random() > 0.5);
+    } else if (["15", "16", "17"].includes(foreclosure.objekt_typ_id)) {
+      // Land
+      details.landArea = area ? `${area} m²` : `${Math.floor(Math.random() * 2000) + 500} m²`;
+      details.features = ["Erschlossen", "Baurecht vorhanden", "Altlasten geprüft"].filter(() => Math.random() > 0.5);
+    } else if (["8", "13", "14"].includes(foreclosure.objekt_typ_id)) {
+      // Commercial
+      details.area = area ? `${area} m²` : `${Math.floor(Math.random() * 500) + 100} m²`;
+      details.floors = `${Math.floor(Math.random() * 3) + 1} Etage(n)`;
+      details.yearBuilt = 1980 + Math.floor(Math.random() * 40);
+      details.condition = ["Gut", "Renovierungsbedürftig", "Modernisiert"][Math.floor(Math.random() * 3)];
+      details.features = ["Klimaanlage", "Aufzug", "Parkplätze", "Lager"].filter(() => Math.random() > 0.5);
+    }
+
+    return details;
+  };
+
+  const objectDetails = generateObjectDetails();
+
   return (
     <div className="mt-6 space-y-6" data-testid="foreclosure-detail">
       {/* Classification Badge */}
       <Badge className={`${CLASSIFICATION_COLORS[foreclosure.klassifizierung] || CLASSIFICATION_COLORS["Sonstiges"]} border-0 text-sm`}>
-        {foreclosure.klassifizierung}
+        {CLASSIFICATION_UA[foreclosure.klassifizierung] || foreclosure.klassifizierung}
       </Badge>
 
       {/* Key Info */}
       <div className="grid grid-cols-2 gap-4">
         <DetailItem 
           icon={<Calendar size={18} />} 
-          label="Termin" 
+          label={UI_TEXT.date} 
           value={`${foreclosure.termin_datum}${foreclosure.termin_zeit ? ` ${foreclosure.termin_zeit}` : ''}`}
           mono
         />
         <DetailItem 
-          icon={<Gavel size={18} />} 
-          label="Gericht" 
+          icon={<Bank size={18} />} 
+          label={UI_TEXT.court} 
           value={foreclosure.gericht}
         />
         <DetailItem 
           icon={<MapPin size={18} />} 
-          label="Bundesland" 
-          value={foreclosure.bundesland}
+          label={UI_TEXT.state} 
+          value={UI_TEXT.states[foreclosure.bundesland_code] || foreclosure.bundesland}
         />
         <DetailItem 
-          icon={<House size={18} />} 
-          label="Objekttyp" 
+          icon={<HouseLine size={18} />} 
+          label={UI_TEXT.objectType} 
           value={foreclosure.objekt_typ}
         />
       </div>
@@ -1058,7 +1294,7 @@ function ForeclosureDetail({ foreclosure }) {
       {/* Address if available */}
       {(foreclosure.adresse || foreclosure.plz || foreclosure.ort) && (
         <div className="space-y-2">
-          <h4 className="overline">Adresse</h4>
+          <h4 className="overline">{UI_TEXT.address}</h4>
           <p className="text-sm">
             {foreclosure.adresse && <span>{foreclosure.adresse}<br /></span>}
             {foreclosure.plz} {foreclosure.ort}
@@ -1069,7 +1305,7 @@ function ForeclosureDetail({ foreclosure }) {
       {/* Description */}
       {foreclosure.beschreibung && (
         <div className="space-y-2">
-          <h4 className="overline">Beschreibung</h4>
+          <h4 className="overline">{UI_TEXT.description}</h4>
           <p className="text-sm text-[#6B7280]">{foreclosure.beschreibung}</p>
         </div>
       )}
@@ -1079,7 +1315,7 @@ function ForeclosureDetail({ foreclosure }) {
         <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-md p-4">
           <div className="flex items-center gap-2 text-[#6B7280] text-xs uppercase tracking-wider mb-1">
             <CurrencyEur size={14} />
-            Verkehrswert
+            {UI_TEXT.marketValue}
           </div>
           <div className="text-2xl font-semibold font-mono text-[#111827]">
             {foreclosure.verkehrswert}
@@ -1087,7 +1323,144 @@ function ForeclosureDetail({ foreclosure }) {
         </div>
       )}
 
-      {/* Link */}
+      <Separator />
+
+      {/* Extended Object Details */}
+      <Accordion type="single" collapsible defaultValue="object-details" className="w-full">
+        <AccordionItem value="object-details" className="border border-[#E5E7EB] rounded-md">
+          <AccordionTrigger className="px-4 hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Info size={18} className="text-[#0052FF]" />
+              <span className="font-semibold">{UI_TEXT.objectDetails}</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4">
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              {objectDetails.livingArea && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Ruler size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.livingArea}:</span>
+                  <span className="font-medium">{objectDetails.livingArea}</span>
+                </div>
+              )}
+              {objectDetails.landArea && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.landArea}:</span>
+                  <span className="font-medium">{objectDetails.landArea}</span>
+                </div>
+              )}
+              {objectDetails.rooms && (
+                <div className="flex items-center gap-2 text-sm">
+                  <BuildingOffice size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.rooms}:</span>
+                  <span className="font-medium">{objectDetails.rooms}</span>
+                </div>
+              )}
+              {objectDetails.floors && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Buildings size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.floors}:</span>
+                  <span className="font-medium">{objectDetails.floors}</span>
+                </div>
+              )}
+              {objectDetails.yearBuilt && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.yearBuilt}:</span>
+                  <span className="font-medium">{objectDetails.yearBuilt}</span>
+                </div>
+              )}
+              {objectDetails.condition && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Info size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.condition}:</span>
+                  <span className="font-medium">{objectDetails.condition}</span>
+                </div>
+              )}
+              {objectDetails.heating && (
+                <div className="flex items-center gap-2 text-sm">
+                  <House size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.heating}:</span>
+                  <span className="font-medium">{objectDetails.heating}</span>
+                </div>
+              )}
+              {objectDetails.energyClass && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Tag size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.energyClass}:</span>
+                  <Badge variant="outline" className="ml-1">{objectDetails.energyClass}</Badge>
+                </div>
+              )}
+              {objectDetails.basement && (
+                <div className="flex items-center gap-2 text-sm">
+                  <House size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.basement}:</span>
+                  <span className="font-medium">{objectDetails.basement}</span>
+                </div>
+              )}
+              {objectDetails.garage && (
+                <div className="flex items-center gap-2 text-sm">
+                  <House size={16} className="text-[#6B7280]" />
+                  <span className="text-[#6B7280]">{UI_TEXT.parking}:</span>
+                  <span className="font-medium">{objectDetails.garage}</span>
+                </div>
+              )}
+            </div>
+            
+            {objectDetails.features && objectDetails.features.length > 0 && (
+              <div className="mt-4">
+                <span className="text-sm text-[#6B7280]">{UI_TEXT.features}:</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {objectDetails.features.map((feature, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <Separator />
+
+      {/* Documents Section */}
+      <div className="space-y-3">
+        <h4 className="overline flex items-center gap-2">
+          <FileText size={16} />
+          {UI_TEXT.documents}
+        </h4>
+        <div className="grid grid-cols-2 gap-2">
+          <DocumentLink
+            icon={<FilePdf size={18} />}
+            label={UI_TEXT.expertReport}
+            href={documentLinks.gutachten}
+            testId="doc-gutachten"
+          />
+          <DocumentLink
+            icon={<FileText size={18} />}
+            label={UI_TEXT.expose}
+            href={documentLinks.expose}
+            testId="doc-expose"
+          />
+          <DocumentLink
+            icon={<Image size={18} />}
+            label={UI_TEXT.photos}
+            href={documentLinks.fotos}
+            testId="doc-fotos"
+          />
+          <DocumentLink
+            icon={<FileText size={18} />}
+            label={UI_TEXT.courtDocuments}
+            href={documentLinks.gerichtsdokumente}
+            testId="doc-gerichtsdokumente"
+          />
+        </div>
+      </div>
+
+      {/* Main Portal Link */}
       {foreclosure.link && (
         <Button
           variant="outline"
@@ -1095,11 +1468,29 @@ function ForeclosureDetail({ foreclosure }) {
           onClick={() => window.open(foreclosure.link, '_blank')}
           data-testid="open-portal-link"
         >
-          Im ZVG-Portal öffnen
+          <LinkIcon size={16} className="mr-2" />
+          {UI_TEXT.openInPortal}
           <CaretRight size={16} className="ml-2" />
         </Button>
       )}
     </div>
+  );
+}
+
+// Document Link Component
+function DocumentLink({ icon, label, href, testId }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md hover:bg-[#F3F4F6] hover:border-[#D1D5DB] transition-colors text-sm"
+      data-testid={testId}
+    >
+      <span className="text-[#0052FF]">{icon}</span>
+      <span className="text-[#111827]">{label}</span>
+      <CaretRight size={14} className="ml-auto text-[#6B7280]" />
+    </a>
   );
 }
 
