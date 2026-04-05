@@ -4,15 +4,17 @@
 Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine abfragt. Die Informationen daraus extrahiert klassifiziert und Termine erstellt.
 
 ### User Requirements
-- Zwangsversteigerungen in Baden-Württemberg, Rheinland-Pfalz, Hessen, Bayern
+- Zwangsversteigerungen in allen 16 deutschen Bundesländern
 - Anpassbare Klassifizierungskriterien (Standard: Immobilientyp)
 - E-Mail Benachrichtigungen via Resend
 - Regelbasierte Klassifizierung
 - Benachrichtigungen in der App anzeigen
 - Manuell per Button auslösen
 - **UI in ukrainischer Sprache**
-- **Dokumenten-Links für jeden Termin**
+- **Dokumenten-Links (PDF) für jeden Termin**
 - **Ausführliche Objekt-Informationen im Detail-Panel**
+- **Filter nach Preis, Typ, Bundesland, Suche**
+- **Guter Kontrast im Detail-Panel**
 
 ## Architecture
 
@@ -24,47 +26,48 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 
 ### Frontend (React) - Ukrainian UI
 - **Dashboard View**: Statistics cards, recent foreclosures table
-- **Termine View**: Full foreclosure list with filters
+- **Termine View**: Full foreclosure list with extended filters (state, category, type, price, search)
 - **Klassifizierung View**: Manage classification rules
-- **Settings Dialog**: Configure states and email notifications
+- **Settings Dialog**: Configure states (all 16) and email notifications
 - **Detail Sheet**: Slide-over panel with:
-  - Basic foreclosure info (date, court, state, type)
-  - Market value display
-  - **Extended object details** (living area, rooms, floors, year built, condition, heating, energy class, etc.)
-  - **Document links** (Expert report, Exposé, Photos, Court documents)
+  - Basic foreclosure info (date, court, state, type) - improved contrast
+  - **Market value in blue highlighted block**
+  - Extended object details (accordion)
+  - **PDF Document links** (Expert report, Exposé, Photos, Court documents)
   - Portal link
 
 ### API Endpoints
-- `GET /api/foreclosures` - List all foreclosures with filters
+- `GET /api/foreclosures` - List with filters (bundesland, objekt_typ, klassifizierung, price_min, price_max, search)
 - `POST /api/fetch` - Trigger manual data fetch
 - `GET /api/statistics` - Dashboard statistics
 - `GET/PUT /api/settings` - Application settings
 - `GET /api/notifications` - In-app notifications
 - `GET/POST/PUT/DELETE /api/classification-rules` - Manage rules
+- `GET /api/bundeslaender` - All 16 German states
 
-## User Personas
-1. **Immobilieninvestor**: Looking for bargain properties via foreclosures
-2. **Makler**: Monitoring market for client opportunities
-3. **Privatperson**: Searching for affordable property options
+## All 16 German States Supported
+Baden-Württemberg, Bayern, Hessen, Rheinland-Pfalz, Thüringen, Sachsen, Nordrhein-Westfalen, Niedersachsen, Sachsen-Anhalt, Brandenburg, Berlin, Schleswig-Holstein, Mecklenburg-Vorpommern, Bremen, Hamburg, Saarland
 
 ## What's Been Implemented (April 2026)
 - [x] Dashboard with statistics (total, by classification, by state)
 - [x] Manual data fetch button
-- [x] Foreclosure listing with filters (Bundesland, Klassifizierung, Objekttyp)
-- [x] Detail sheet for individual foreclosures
+- [x] **Extended filtering** (state, category, type, price range, text search)
+- [x] Detail sheet with **improved contrast** and **PDF document links**
 - [x] Classification rules management
-- [x] Settings for state selection
+- [x] Settings for **all 16 states** selection
 - [x] In-app notifications system
 - [x] E-Mail configuration (Resend integration ready)
 - [x] Demo data generation when live data unavailable
 - [x] **Ukrainian UI translation** (all labels, buttons, navigation)
-- [x] **Document links** (Gutachten, Exposé, Fotos, Gerichtsdokumente)
-- [x] **Extended object details** (Wohnfläche, Grundstück, Zimmer, Baujahr, Zustand, Heizung, Energieklasse, etc.)
+- [x] **PDF Document links** (Gutachten, Exposé, Fotos, Gerichtsdokumente)
+- [x] **Extended object details** (Wohnfläche, Grundstück, Zimmer, Baujahr, etc.)
+- [x] **Price filter** with predefined ranges
+- [x] **Search filter** (case number, court, city)
 
 ## Technical Notes
 - **MOCK DATA**: Live scraping from zvg-portal.de may not return data due to website structure. Demo data is generated automatically.
 - **Resend API**: Requires RESEND_API_KEY in backend/.env for email functionality
-- **Document links**: Generated based on zvg_id extracted from foreclosure link
+- **Document links**: Generated based on zvg_id extracted from foreclosure link - PDF format
 - **Object details**: Dynamically generated based on property type
 
 ## Prioritized Backlog
@@ -74,19 +77,18 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 
 ### P1 (High Priority)
 - Scheduled/automatic daily fetch (cron job)
-- Filter by date range
+- Date range filter
 - Export to ICS calendar file
 
 ### P2 (Medium Priority)
 - Google Calendar integration
-- Advanced search (address, PLZ)
 - Saved filter presets
+- PDF export of listings
 
 ### P3 (Nice to Have)
 - Price alerts for specific ranges
 - Watchlist for specific properties
 - Historical price trends
-- PDF export of listings
 
 ## Next Tasks
 1. Add Resend API key for email functionality
