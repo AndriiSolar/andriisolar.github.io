@@ -10,6 +10,9 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 - Regelbasierte Klassifizierung
 - Benachrichtigungen in der App anzeigen
 - Manuell per Button auslösen
+- **UI in ukrainischer Sprache**
+- **Dokumenten-Links für jeden Termin**
+- **Ausführliche Objekt-Informationen im Detail-Panel**
 
 ## Architecture
 
@@ -19,12 +22,17 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 - **MongoDB**: Stores foreclosures, settings, notifications, classification rules
 - **Resend Integration**: Email notifications for new foreclosures
 
-### Frontend (React)
+### Frontend (React) - Ukrainian UI
 - **Dashboard View**: Statistics cards, recent foreclosures table
 - **Termine View**: Full foreclosure list with filters
 - **Klassifizierung View**: Manage classification rules
 - **Settings Dialog**: Configure states and email notifications
-- **Detail Sheet**: Slide-over panel with foreclosure details
+- **Detail Sheet**: Slide-over panel with:
+  - Basic foreclosure info (date, court, state, type)
+  - Market value display
+  - **Extended object details** (living area, rooms, floors, year built, condition, heating, energy class, etc.)
+  - **Document links** (Expert report, Exposé, Photos, Court documents)
+  - Portal link
 
 ### API Endpoints
 - `GET /api/foreclosures` - List all foreclosures with filters
@@ -39,7 +47,7 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 2. **Makler**: Monitoring market for client opportunities
 3. **Privatperson**: Searching for affordable property options
 
-## What's Been Implemented (March 2026)
+## What's Been Implemented (April 2026)
 - [x] Dashboard with statistics (total, by classification, by state)
 - [x] Manual data fetch button
 - [x] Foreclosure listing with filters (Bundesland, Klassifizierung, Objekttyp)
@@ -49,10 +57,15 @@ Ich will ein Prozess der mir täglich von der Seite zvg-Portal.de neue Termine a
 - [x] In-app notifications system
 - [x] E-Mail configuration (Resend integration ready)
 - [x] Demo data generation when live data unavailable
+- [x] **Ukrainian UI translation** (all labels, buttons, navigation)
+- [x] **Document links** (Gutachten, Exposé, Fotos, Gerichtsdokumente)
+- [x] **Extended object details** (Wohnfläche, Grundstück, Zimmer, Baujahr, Zustand, Heizung, Energieklasse, etc.)
 
 ## Technical Notes
 - **MOCK DATA**: Live scraping from zvg-portal.de may not return data due to website structure. Demo data is generated automatically.
 - **Resend API**: Requires RESEND_API_KEY in backend/.env for email functionality
+- **Document links**: Generated based on zvg_id extracted from foreclosure link
+- **Object details**: Dynamically generated based on property type
 
 ## Prioritized Backlog
 
