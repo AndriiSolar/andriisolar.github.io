@@ -277,6 +277,7 @@ async def zvg_redirect(zvg_id: str, land_abk: str):
             }}
             h2 {{ color: #111827; margin: 0 0 0.5rem; font-size: 1.25rem; }}
             p {{ color: #6B7280; margin: 0; font-size: 0.875rem; }}
+            .countdown {{ font-size: 1.5rem; font-weight: bold; color: #0052FF; margin: 1rem 0; }}
             .manual-link {{
                 margin-top: 1rem;
                 padding-top: 1rem;
@@ -295,7 +296,9 @@ async def zvg_redirect(zvg_id: str, land_abk: str):
         <div class="loader">
             <div class="spinner"></div>
             <h2>Weiterleitung zum ZVG-Portal</h2>
-            <p>Bitte warten, Session wird aufgebaut...</p>
+            <p>Session wird aufgebaut...</p>
+            <div class="countdown" id="countdown">8</div>
+            <p>Sekunden bis zur Weiterleitung</p>
             <div class="manual-link">
                 <p>Falls die Weiterleitung nicht funktioniert:</p>
                 <p><a href="{search_url}" target="_blank">1. Klicken Sie hier für die Suche</a></p>
@@ -306,17 +309,18 @@ async def zvg_redirect(zvg_id: str, land_abk: str):
         <iframe id="session-frame" style="display:none;" src="{search_url}"></iframe>
         
         <script>
-            // Wait for iframe to load (session cookies set), then redirect
-            document.getElementById('session-frame').onload = function() {{
-                setTimeout(function() {{
-                    window.location.href = "{detail_url}";
-                }}, 1500);
-            }};
+            var seconds = 8;
+            var countdownEl = document.getElementById('countdown');
             
-            // Fallback: redirect after 3 seconds anyway
-            setTimeout(function() {{
-                window.location.href = "{detail_url}";
-            }}, 3000);
+            // Countdown timer
+            var timer = setInterval(function() {{
+                seconds--;
+                countdownEl.textContent = seconds;
+                if (seconds <= 0) {{
+                    clearInterval(timer);
+                    window.location.href = "{detail_url}";
+                }}
+            }}, 1000);
         </script>
     </body>
     </html>
@@ -391,6 +395,7 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
             }}
             h2 {{ color: #111827; margin: 0 0 0.5rem; font-size: 1.25rem; }}
             p {{ color: #6B7280; margin: 0; font-size: 0.875rem; }}
+            .countdown {{ font-size: 1.5rem; font-weight: bold; color: #DC2626; margin: 1rem 0; }}
             .manual-link {{
                 margin-top: 1rem;
                 padding-top: 1rem;
@@ -417,6 +422,8 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
             <div class="spinner"></div>
             <h2>{doc_name} wird geladen</h2>
             <p>Session wird aufgebaut...</p>
+            <div class="countdown" id="countdown">10</div>
+            <p>Sekunden bis zum Download</p>
             <div class="manual-link">
                 <p><strong>Falls das Dokument nicht lädt:</strong></p>
                 <ol class="steps">
@@ -427,28 +434,32 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
             </div>
         </div>
         
-        <iframe id="session-frame" style="display:none;" src="{search_url}"></iframe>
+        <iframe id="session-frame-1" style="display:none;" src="{search_url}"></iframe>
+        <iframe id="session-frame-2" style="display:none;"></iframe>
         
         <script>
+            var seconds = 10;
+            var countdownEl = document.getElementById('countdown');
             var step = 0;
             
-            document.getElementById('session-frame').onload = function() {{
-                step++;
-                if (step === 1) {{
-                    // First load complete, now load detail page
-                    this.src = "{detail_url}";
-                }} else if (step === 2) {{
-                    // Detail page loaded, now redirect to document
-                    setTimeout(function() {{
-                        window.location.href = "{doc_url}";
-                    }}, 500);
+            // After search page loads, load the detail page
+            document.getElementById('session-frame-1').onload = function() {{
+                if (step === 0) {{
+                    step = 1;
+                    // Load detail page to establish full session
+                    document.getElementById('session-frame-2').src = "{detail_url}";
                 }}
             }};
             
-            // Fallback: redirect after 5 seconds anyway
-            setTimeout(function() {{
-                window.location.href = "{doc_url}";
-            }}, 5000);
+            // Countdown timer
+            var timer = setInterval(function() {{
+                seconds--;
+                countdownEl.textContent = seconds;
+                if (seconds <= 0) {{
+                    clearInterval(timer);
+                    window.location.href = "{doc_url}";
+                }}
+            }}, 1000);
         </script>
     </body>
     </html>
