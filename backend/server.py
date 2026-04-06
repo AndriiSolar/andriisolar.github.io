@@ -13,6 +13,7 @@ import httpx
 from bs4 import BeautifulSoup
 import asyncio
 import resend
+import re
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -177,110 +178,193 @@ DEFAULT_CLASSIFICATION_RULES = [
 # ============== SCRAPER ==============
 
 async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
-    """Fetch foreclosure listings from zvg-portal.de for a specific state"""
+    """Fetch real foreclosure listings from zvg-portal.de for a specific state"""
     results = []
-    base_url = "https://www.zvg-portal.de/index.php"
+    base_url = "https://www.zvg-portal.de"
     
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as http_client:
-            # Make a search request with proper headers
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
+            # Make a search request
             search_data = {
                 "land_abk": bundesland_code,
                 "ger_id": "0",
-                "az1": "",
-                "az2": "",
-                "az3": "",
-                "az4": "",
-                "art": "",
-                "obj": "",
-                "str": "",
-                "hnr": "",
-                "plz": "",
-                "ort": "",
-                "ortsteil": "",
                 "order_by": "2"
             }
             
             response = await http_client.post(
-                f"{base_url}?button=Suchen",
+                f"{base_url}/index.php?button=Suchen",
                 data=search_data,
                 headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Content-Type": "application/x-www-form-urlencoded",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-                    "Referer": "https://www.zvg-portal.de/index.php?button=Termine%20suchen"
                 }
             )
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'lxml')
                 
-                # Look for result rows - zvg-portal uses specific structure
-                # Try finding by looking for rows with aktenzeichen links
-                all_links = soup.find_all('a', href=lambda h: h and 'zvg_object' in str(h).lower())
+                # Find all links to detail pages (format: index.php?button=showZvg&zvg_id=XXXXX&land_abk=XX)
+                detail_links = soup.find_all('a', href=lambda h: h and 'showZvg' in str(h) and 'zvg_id' in str(h))
                 
-                if not all_links:
-                    # Alternative: look for table rows with td elements
-                    all_tables = soup.find_all('table')
-                    for table in all_tables:
-                        rows = table.find_all('tr')
-                        for row in rows:
-                            cells = row.find_all('td')
-                            if len(cells) >= 3:
-                                link_elem = cells[0].find('a')
-                                if link_elem and link_elem.text.strip():
-                                    try:
-                                        aktenzeichen = link_elem.text.strip()
-                                        link = link_elem.get('href', '')
-                                        if link and not link.startswith('http'):
-                                            link = f"https://www.zvg-portal.de/{link}"
-                                        
-                                        termin_text = cells[1].text.strip() if len(cells) > 1 else ""
-                                        gericht = cells[2].text.strip() if len(cells) > 2 else ""
-                                        beschreibung = cells[3].text.strip() if len(cells) > 3 else ""
-                                        
-                                        # Parse date
-                                        termin_parts = termin_text.split()
-                                        termin_datum = termin_parts[0] if termin_parts else ""
-                                        termin_zeit = termin_parts[1] if len(termin_parts) > 1 else None
-                                        
-                                        # Determine object type
-                                        objekt_typ = "Sonstiges"
-                                        objekt_typ_id = "18"
-                                        for type_id, type_name in OBJEKT_TYPEN.items():
-                                            if type_name.lower() in beschreibung.lower():
-                                                objekt_typ = type_name
-                                                objekt_typ_id = type_id
-                                                break
-                                        
-                                        results.append({
-                                            "aktenzeichen": aktenzeichen,
-                                            "gericht": gericht,
-                                            "bundesland": BUNDESLAENDER.get(bundesland_code, bundesland_code),
-                                            "bundesland_code": bundesland_code,
-                                            "termin_datum": termin_datum,
-                                            "termin_zeit": termin_zeit,
-                                            "objekt_typ": objekt_typ,
-                                            "objekt_typ_id": objekt_typ_id,
-                                            "beschreibung": beschreibung,
-                                            "link": link
-                                        })
-                                    except Exception as e:
-                                        logger.error(f"Error parsing row: {e}")
-                                        continue
+                for link in detail_links:
+                    try:
+                        href = link.get('href', '')
+                        
+                        # Extract zvg_id from the link
+                        zvg_id_match = re.search(r'zvg_id=(\d+)', href)
+                        if not zvg_id_match:
+                            continue
+                        zvg_id = zvg_id_match.group(1)
+                        
+                        # Extract aktenzeichen from link text
+                        aktenzeichen_text = link.get_text(strip=True)
+                        aktenzeichen = aktenzeichen_text.replace('(Detailansicht)', '').strip()
+                        
+                        # Navigate to parent row structure to get other data
+                        # The structure is: TR > TD > a (aktenzeichen link)
+                        parent_row = link.find_parent('tr')
+                        if not parent_row:
+                            continue
+                        
+                        # Find all subsequent rows until the next <hr> separator
+                        current_element = parent_row
+                        gericht = ""
+                        objekt_lage = ""
+                        verkehrswert = ""
+                        termin_text = ""
+                        pdf_link = ""
+                        
+                        while current_element:
+                            current_element = current_element.find_next_sibling('tr')
+                            if not current_element:
+                                break
+                            
+                            # Check if we hit a separator
+                            hr = current_element.find('hr')
+                            if hr:
+                                break
+                            
+                            row_text = current_element.get_text(strip=True)
+                            tds = current_element.find_all('td')
+                            
+                            if len(tds) >= 2:
+                                label = tds[0].get_text(strip=True).lower()
+                                value = tds[1].get_text(strip=True) if len(tds) > 1 else ""
+                                
+                                if 'amtsgericht' in label:
+                                    gericht = value.replace('in Bayern', '').replace('in Baden-Württemberg', '').strip()
+                                    if not gericht:
+                                        gericht = f"AG {BUNDESLAENDER.get(bundesland_code, bundesland_code)}"
+                                elif 'objekt' in label or 'lage' in label:
+                                    objekt_lage = value
+                                elif 'verkehrswert' in label:
+                                    # Clean up verkehrswert
+                                    vw_text = tds[1].get_text(separator=' ', strip=True)
+                                    # Extract first number
+                                    vw_match = re.search(r'([\d.,]+)\s*€?', vw_text)
+                                    if vw_match:
+                                        verkehrswert = vw_match.group(1).strip()
+                                        if not '€' in verkehrswert:
+                                            verkehrswert += ' €'
+                                elif 'termin' in label:
+                                    termin_text = value
+                                
+                                # Check for PDF link
+                                pdf_a = current_element.find('a', href=lambda h: h and 'showAnhang' in str(h))
+                                if pdf_a:
+                                    pdf_link = pdf_a.get('href', '')
+                                    if pdf_link and not pdf_link.startswith('http'):
+                                        pdf_link = f"{base_url}/{pdf_link}"
+                        
+                        # Parse termin (date and time)
+                        termin_datum = ""
+                        termin_zeit = ""
+                        if termin_text:
+                            # Format: "Mittwoch, 08. April 2026, 09:30 Uhr"
+                            date_match = re.search(r'(\d{1,2})\.\s*(\w+)\s*(\d{4})', termin_text)
+                            time_match = re.search(r'(\d{1,2}:\d{2})\s*Uhr', termin_text)
+                            
+                            if date_match:
+                                day = date_match.group(1)
+                                month_name = date_match.group(2)
+                                year = date_match.group(3)
+                                
+                                # Convert German month to number
+                                months = {
+                                    'januar': '01', 'februar': '02', 'märz': '03', 'april': '04',
+                                    'mai': '05', 'juni': '06', 'juli': '07', 'august': '08',
+                                    'september': '09', 'oktober': '10', 'november': '11', 'dezember': '12'
+                                }
+                                month = months.get(month_name.lower(), '01')
+                                termin_datum = f"{day.zfill(2)}.{month}.{year}"
+                            
+                            if time_match:
+                                termin_zeit = f"{time_match.group(1)} Uhr"
+                        
+                        # Parse objekt_lage to get type and address
+                        objekt_typ = "Sonstiges"
+                        objekt_typ_id = "18"
+                        adresse = ""
+                        ort = ""
+                        plz = ""
+                        
+                        if objekt_lage:
+                            # Split by ":" - usually "Type: Address"
+                            parts = objekt_lage.split(':', 1)
+                            if len(parts) >= 2:
+                                type_part = parts[0].strip()
+                                address_part = parts[1].strip()
+                                
+                                # Determine object type
+                                for type_id, type_name in OBJEKT_TYPEN.items():
+                                    if type_name.lower() in type_part.lower():
+                                        objekt_typ = type_name
+                                        objekt_typ_id = type_id
+                                        break
+                                
+                                # Parse address
+                                adresse = address_part
+                                # Try to extract PLZ and Ort
+                                plz_match = re.search(r'(\d{5})\s+(.+?)(?:,|$)', address_part)
+                                if plz_match:
+                                    plz = plz_match.group(1)
+                                    ort = plz_match.group(2).strip()
+                        
+                        # Build the full link
+                        full_link = href if href.startswith('http') else f"{base_url}/{href}"
+                        
+                        result = {
+                            "aktenzeichen": aktenzeichen,
+                            "gericht": gericht if gericht else f"AG {BUNDESLAENDER.get(bundesland_code, bundesland_code)}",
+                            "bundesland": BUNDESLAENDER.get(bundesland_code, bundesland_code),
+                            "bundesland_code": bundesland_code,
+                            "termin_datum": termin_datum,
+                            "termin_zeit": termin_zeit,
+                            "objekt_typ": objekt_typ,
+                            "objekt_typ_id": objekt_typ_id,
+                            "beschreibung": objekt_lage,
+                            "adresse": adresse,
+                            "plz": plz,
+                            "ort": ort,
+                            "verkehrswert": verkehrswert,
+                            "zvg_id": zvg_id,
+                            "link": full_link,
+                            "pdf_link": pdf_link
+                        }
+                        results.append(result)
+                        
+                    except Exception as e:
+                        logger.error(f"Error parsing foreclosure: {e}")
+                        continue
                 
-                logger.info(f"Fetched {len(results)} foreclosures from {BUNDESLAENDER.get(bundesland_code)}")
+                logger.info(f"Fetched {len(results)} real foreclosures from {BUNDESLAENDER.get(bundesland_code)}")
             else:
                 logger.error(f"Failed to fetch from portal: {response.status_code}")
                 
     except Exception as e:
         logger.error(f"Error fetching foreclosures: {e}")
-    
-    # If no results from live scraping, generate demo data for testing
-    if len(results) == 0:
-        results = generate_demo_foreclosures(bundesland_code)
-        logger.info(f"Generated {len(results)} demo foreclosures for {BUNDESLAENDER.get(bundesland_code)}")
     
     return results
 
