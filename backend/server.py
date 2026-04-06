@@ -175,7 +175,286 @@ DEFAULT_CLASSIFICATION_RULES = [
     {"id": "6", "name": "Sonstiges", "objekt_typ_ids": ["12", "18"], "active": True},
 ]
 
-# ============== SCRAPER ==============
+# ============== ZVG PORTAL PROXY ==============
+
+# Store sessions for ZVG portal access
+zvg_sessions = {}
+
+async def get_zvg_session(bundesland_code: str) -> httpx.Cookies:
+    """Get or create a session with ZVG portal cookies"""
+    import time
+    
+    # Check if we have a valid session (less than 10 minutes old)
+    session_key = bundesland_code
+    current_time = time.time()
+    
+    if session_key in zvg_sessions:
+        session_data = zvg_sessions[session_key]
+        if current_time - session_data['created'] < 600:  # 10 minutes
+            return session_data['cookies']
+    
+    # Create new session by visiting the search page first
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        # First, visit the main search page to get cookies
+        search_response = await client.get(
+            "https://www.zvg-portal.de/index.php?button=Termine%20suchen",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+            }
+        )
+        
+        # Then perform a search to establish the session
+        await client.post(
+            "https://www.zvg-portal.de/index.php?button=Suchen",
+            data={"land_abk": bundesland_code, "ger_id": "0", "order_by": "2"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Referer": "https://www.zvg-portal.de/index.php?button=Termine%20suchen",
+            }
+        )
+        
+        # Store session
+        zvg_sessions[session_key] = {
+            'cookies': client.cookies,
+            'created': current_time
+        }
+        
+        return client.cookies
+
+@api_router.get("/zvg-redirect")
+async def zvg_redirect(zvg_id: str, land_abk: str):
+    """
+    Redirect to ZVG portal detail page with proper session.
+    This endpoint first establishes a session, then redirects to the detail page.
+    """
+    from fastapi.responses import HTMLResponse
+    
+    # Create an HTML page that:
+    # 1. First loads the search page in a hidden iframe to get cookies
+    # 2. Then redirects to the detail page
+    
+    detail_url = f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={land_abk}"
+    search_url = f"https://www.zvg-portal.de/index.php?button=Suchen&land_abk={land_abk}&ger_id=0&order_by=2"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weiterleitung zum ZVG-Portal...</title>
+        <style>
+            body {{
+                font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background: #F9FAFB;
+            }}
+            .loader {{
+                text-align: center;
+                padding: 2rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }}
+            .spinner {{
+                width: 40px;
+                height: 40px;
+                border: 3px solid #E5E7EB;
+                border-top-color: #0052FF;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 1rem;
+            }}
+            @keyframes spin {{
+                to {{ transform: rotate(360deg); }}
+            }}
+            h2 {{ color: #111827; margin: 0 0 0.5rem; font-size: 1.25rem; }}
+            p {{ color: #6B7280; margin: 0; font-size: 0.875rem; }}
+            .manual-link {{
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid #E5E7EB;
+            }}
+            a {{
+                color: #0052FF;
+                text-decoration: none;
+            }}
+            a:hover {{
+                text-decoration: underline;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="loader">
+            <div class="spinner"></div>
+            <h2>Weiterleitung zum ZVG-Portal</h2>
+            <p>Bitte warten, Session wird aufgebaut...</p>
+            <div class="manual-link">
+                <p>Falls die Weiterleitung nicht funktioniert:</p>
+                <p><a href="{search_url}" target="_blank">1. Klicken Sie hier für die Suche</a></p>
+                <p><a href="{detail_url}" target="_blank">2. Dann hier für den Termin</a></p>
+            </div>
+        </div>
+        
+        <iframe id="session-frame" style="display:none;" src="{search_url}"></iframe>
+        
+        <script>
+            // Wait for iframe to load (session cookies set), then redirect
+            document.getElementById('session-frame').onload = function() {{
+                setTimeout(function() {{
+                    window.location.href = "{detail_url}";
+                }}, 1500);
+            }};
+            
+            // Fallback: redirect after 3 seconds anyway
+            setTimeout(function() {{
+                window.location.href = "{detail_url}";
+            }}, 3000);
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)
+
+@api_router.get("/zvg-document")
+async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
+    """
+    Redirect to ZVG portal document (PDF) with proper session.
+    doc_type can be: gutachten, expose, fotos, dokumente
+    """
+    from fastapi.responses import HTMLResponse
+    
+    # Document URL patterns
+    doc_urls = {
+        "gutachten": f"https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id={zvg_id}&land_abk={land_abk}&anhession=gutachten",
+        "expose": f"https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id={zvg_id}&land_abk={land_abk}&anhession=expose",
+        "fotos": f"https://www.zvg-portal.de/index.php?button=showZvgFotos&zvg_id={zvg_id}&land_abk={land_abk}",
+        "dokumente": f"https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id={zvg_id}&land_abk={land_abk}&anhession=dokumente",
+    }
+    
+    doc_url = doc_urls.get(doc_type, doc_urls["gutachten"])
+    search_url = f"https://www.zvg-portal.de/index.php?button=Suchen&land_abk={land_abk}&ger_id=0&order_by=2"
+    detail_url = f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={land_abk}"
+    
+    doc_names = {
+        "gutachten": "Gutachten",
+        "expose": "Exposé", 
+        "fotos": "Fotos",
+        "dokumente": "Gerichtsdokumente"
+    }
+    doc_name = doc_names.get(doc_type, "Dokument")
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{doc_name} wird geladen...</title>
+        <style>
+            body {{
+                font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background: #F9FAFB;
+            }}
+            .loader {{
+                text-align: center;
+                padding: 2rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                max-width: 400px;
+            }}
+            .spinner {{
+                width: 40px;
+                height: 40px;
+                border: 3px solid #E5E7EB;
+                border-top-color: #DC2626;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 1rem;
+            }}
+            @keyframes spin {{
+                to {{ transform: rotate(360deg); }}
+            }}
+            h2 {{ color: #111827; margin: 0 0 0.5rem; font-size: 1.25rem; }}
+            p {{ color: #6B7280; margin: 0; font-size: 0.875rem; }}
+            .manual-link {{
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid #E5E7EB;
+            }}
+            a {{
+                color: #0052FF;
+                text-decoration: none;
+            }}
+            a:hover {{
+                text-decoration: underline;
+            }}
+            .steps {{
+                text-align: left;
+                margin-top: 0.5rem;
+            }}
+            .steps li {{
+                margin: 0.5rem 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="loader">
+            <div class="spinner"></div>
+            <h2>{doc_name} wird geladen</h2>
+            <p>Session wird aufgebaut...</p>
+            <div class="manual-link">
+                <p><strong>Falls das Dokument nicht lädt:</strong></p>
+                <ol class="steps">
+                    <li><a href="{search_url}" target="_blank">Zuerst hier klicken (Suche)</a></li>
+                    <li><a href="{detail_url}" target="_blank">Dann Termin öffnen</a></li>
+                    <li><a href="{doc_url}" target="_blank">Dann {doc_name} öffnen</a></li>
+                </ol>
+            </div>
+        </div>
+        
+        <iframe id="session-frame" style="display:none;" src="{search_url}"></iframe>
+        
+        <script>
+            var step = 0;
+            
+            document.getElementById('session-frame').onload = function() {{
+                step++;
+                if (step === 1) {{
+                    // First load complete, now load detail page
+                    this.src = "{detail_url}";
+                }} else if (step === 2) {{
+                    // Detail page loaded, now redirect to document
+                    setTimeout(function() {{
+                        window.location.href = "{doc_url}";
+                    }}, 500);
+                }}
+            }};
+            
+            // Fallback: redirect after 5 seconds anyway
+            setTimeout(function() {{
+                window.location.href = "{doc_url}";
+            }}, 5000);
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)
 
 async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
     """Fetch real foreclosure listings from zvg-portal.de for a specific state"""

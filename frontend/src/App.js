@@ -89,6 +89,30 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Helper function to generate ZVG redirect URL
+const getZvgRedirectUrl = (zvgId, landAbk) => {
+  return `${API}/zvg-redirect?zvg_id=${zvgId}&land_abk=${landAbk}`;
+};
+
+// Helper function to generate ZVG document URL
+const getZvgDocumentUrl = (zvgId, landAbk, docType) => {
+  return `${API}/zvg-document?zvg_id=${zvgId}&land_abk=${landAbk}&doc_type=${docType}`;
+};
+
+// Extract zvg_id from link
+const extractZvgId = (link) => {
+  if (!link) return null;
+  const match = link.match(/zvg_id=(\d+)/);
+  return match ? match[1] : null;
+};
+
+// Extract land_abk from link
+const extractLandAbk = (link) => {
+  if (!link) return null;
+  const match = link.match(/land_abk=(\w+)/);
+  return match ? match[1] : null;
+};
+
 // Ukrainian translations
 const UI_TEXT = {
   // Header
@@ -748,7 +772,7 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                   <TableCell className="text-center">
                     {f.link && (
                       <a
-                        href={f.link}
+                        href={getZvgRedirectUrl(extractZvgId(f.link), extractLandAbk(f.link) || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -947,7 +971,7 @@ function TermineView({
                   <TableCell className="text-center">
                     {f.link && (
                       <a
-                        href={f.link}
+                        href={getZvgRedirectUrl(extractZvgId(f.link), extractLandAbk(f.link) || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -1329,32 +1353,36 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
 
 // Enhanced Foreclosure Detail Component with better contrast and PDF links
 function ForeclosureDetail({ foreclosure }) {
-  // Generate direct PDF document links
+  // Get zvg_id and land_abk from foreclosure
+  const zvgId = extractZvgId(foreclosure.link) || foreclosure.zvg_id;
+  const landAbk = extractLandAbk(foreclosure.link) || foreclosure.bundesland_code;
+  
+  // Generate direct PDF document links using proxy endpoints
   const generateDocumentLinks = () => {
-    const baseUrl = "https://www.zvg-portal.de";
-    const zvgId = foreclosure.link?.match(/zvg_id=(\d+)/)?.[1] || "12345";
-    
     return {
       gutachten: {
-        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=gutachten`,
+        url: getZvgDocumentUrl(zvgId, landAbk, 'gutachten'),
         label: UI_TEXT.expertReport
       },
       expose: {
-        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=expose`,
+        url: getZvgDocumentUrl(zvgId, landAbk, 'expose'),
         label: UI_TEXT.expose
       },
       fotos: {
-        url: `${baseUrl}/index.php?button=showZvFotos&zvg_id=${zvgId}`,
+        url: getZvgDocumentUrl(zvgId, landAbk, 'fotos'),
         label: UI_TEXT.photos
       },
       gerichtsdokumente: {
-        url: `${baseUrl}/index.php?button=showZvgPdf&zvg_id=${zvgId}&type=dokumente`,
+        url: getZvgDocumentUrl(zvgId, landAbk, 'dokumente'),
         label: UI_TEXT.courtDocuments
       },
     };
   };
 
   const documentLinks = generateDocumentLinks();
+  
+  // Main portal link using proxy
+  const mainPortalLink = getZvgRedirectUrl(zvgId, landAbk);
 
   // Generate extended object details
   const generateObjectDetails = () => {
@@ -1622,7 +1650,7 @@ function ForeclosureDetail({ foreclosure }) {
       {foreclosure.link && (
         <Button
           className="w-full bg-[#111827] hover:bg-[#1F2937] text-white"
-          onClick={() => window.open(foreclosure.link, '_blank')}
+          onClick={() => window.open(mainPortalLink, '_blank')}
           data-testid="open-portal-link"
         >
           <LinkIcon size={16} className="mr-2" />
