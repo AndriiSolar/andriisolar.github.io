@@ -58,6 +58,7 @@ class Foreclosure(BaseModel):
     beschreibung: Optional[str] = None
     klassifizierung: str = "Sonstiges"
     link: Optional[str] = None
+    pdf_link: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ForeclosureResponse(BaseModel):
@@ -77,6 +78,7 @@ class ForeclosureResponse(BaseModel):
     beschreibung: Optional[str] = None
     klassifizierung: str
     link: Optional[str] = None
+    pdf_link: Optional[str] = None
     created_at: str
 
 class ClassificationRule(BaseModel):
@@ -563,11 +565,22 @@ async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
                                     termin_text = value
                                 
                                 # Check for PDF link
-                                pdf_a = current_element.find('a', href=lambda h: h and 'showAnhang' in str(h))
+                                pdf_link = ""
+                                pdf_a = current_element.find('a', href=lambda h: h and ('showAnhang' in str(h) or 'showZvgFotos' in str(h)))
                                 if pdf_a:
-                                    pdf_link = pdf_a.get('href', '')
-                                    if pdf_link and not pdf_link.startswith('http'):
-                                        pdf_link = f"{base_url}/{pdf_link}"
+                                    raw_pdf_href = pdf_a.get('href', '')
+                                    
+                                    # Dokumenten-Typ für unseren Proxy herausfinden
+                                    doc_type = "gutachten"  # Standard
+                                    if "expose" in raw_pdf_href.lower():
+                                        doc_type = "expose"
+                                    elif "fotos" in raw_pdf_href.lower() or "showzvgfotos" in raw_pdf_href.lower():
+                                        doc_type = "fotos"
+                                    elif "dokumente" in raw_pdf_href.lower():
+                                        doc_type = "dokumente"
+                                        
+                                    # Setze den Link auf unseren eigenen ZVG-Document-Proxy
+                                    pdf_link = f"/api/zvg-document?zvg_id={zvg_id}&land_abk={bundesland_code}&doc_type={doc_type}"
                         
                         # Parse termin (date and time)
                         termin_datum = ""
@@ -623,8 +636,8 @@ async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
                                     plz = plz_match.group(1)
                                     ort = plz_match.group(2).strip()
                         
-                        # Build the full link
-                        full_link = href if href.startswith('http') else f"{base_url}/{href}"
+                        # NEU: Nutze unseren eigenen ZVG-Redirect-Proxy
+                        full_link = f"/api/zvg-redirect?zvg_id={zvg_id}&land_abk={bundesland_code}"
                         
                         result = {
                             "aktenzeichen": aktenzeichen,
@@ -718,9 +731,8 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
         # Generate unique zvg_id for link - use realistic format for ZVG portal
         zvg_id = random.randint(100000, 999999)
         
-        # The actual ZVG portal link format for viewing a specific foreclosure
-        # Format: index.php?button=showZvg&zvg_id=XXXXX&land_abk=XX
-        portal_link = f"https://www.zvg-portal.de/index.php?button=showZvg&zvg_id={zvg_id}&land_abk={bundesland_code}"
+        # NEU: Nutze unseren eigenen ZVG-Redirect-Proxy anstelle des Direktlinks
+        portal_link = f"/api/zvg-redirect?zvg_id={zvg_id}&land_abk={bundesland_code}"
         
         results.append({
             "aktenzeichen": aktenzeichen,
