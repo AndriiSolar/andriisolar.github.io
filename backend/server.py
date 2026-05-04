@@ -18,14 +18,10 @@ import re
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# ============== KONFIGURATION ==============
-# WICHTIG: Passe diese URL an, falls dein Python-Backend auf einem anderen Port läuft!
-API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
-
 # MongoDB connection
-mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'zvg_database')]
+db = client[os.environ['DB_NAME']]
 
 # Resend configuration
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
@@ -61,8 +57,9 @@ class Foreclosure(BaseModel):
     verkehrswert: Optional[str] = None
     beschreibung: Optional[str] = None
     klassifizierung: str = "Sonstiges"
-    link: Optional[str] = None
-    pdf_link: Optional[str] = None
+    zvg_id: Optional[str] = None
+    land_abk: Optional[str] = None
+    pdf_doc_type: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ForeclosureResponse(BaseModel):
@@ -81,8 +78,9 @@ class ForeclosureResponse(BaseModel):
     verkehrswert: Optional[str] = None
     beschreibung: Optional[str] = None
     klassifizierung: str
-    link: Optional[str] = None
-    pdf_link: Optional[str] = None
+    zvg_id: Optional[str] = None
+    land_abk: Optional[str] = None
+    pdf_doc_type: Optional[str] = None
     created_at: str
 
 class ClassificationRule(BaseModel):
@@ -421,8 +419,8 @@ async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
                                     elif "fotos" in raw_pdf_href.lower() or "showzvgfotos" in raw_pdf_href.lower(): doc_type = "fotos"
                                     elif "dokumente" in raw_pdf_href.lower(): doc_type = "dokumente"
                                     
-                                    # ABSOLUTE URL FÜR PDF
-                                    pdf_link = f"{API_BASE_URL}/api/zvg-document?zvg_id={zvg_id}&land_abk={bundesland_code}&doc_type={doc_type}"
+                                    # Store doc_type for frontend to generate URL
+                                    pdf_link = doc_type
                         
                         termin_datum = ""
                         termin_zeit = ""
@@ -448,9 +446,7 @@ async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
                                 if plz_match:
                                     plz, ort = plz_match.group(1), plz_match.group(2).strip()
                         
-                        # ABSOLUTE URL FÜR DETAIL-SEITE
-                        full_link = f"{API_BASE_URL}/api/zvg-redirect?zvg_id={zvg_id}&land_abk={bundesland_code}"
-                        
+                        # Store zvg_id and land_abk - frontend generates full URLs
                         results.append({
                             "aktenzeichen": aktenzeichen,
                             "gericht": gericht,
@@ -466,8 +462,8 @@ async def fetch_foreclosures_from_portal(bundesland_code: str) -> List[dict]:
                             "ort": ort,
                             "verkehrswert": verkehrswert,
                             "zvg_id": zvg_id,
-                            "link": full_link,
-                            "pdf_link": pdf_link
+                            "land_abk": bundesland_code,
+                            "pdf_doc_type": pdf_link
                         })
                     except Exception as e:
                         logger.error(f"Error parsing foreclosure: {e}")
@@ -482,14 +478,11 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
     import random
     from datetime import datetime, timedelta
     
-    # ... (Demo Data generation logic) ...
     results = []
     num_entries = random.randint(3, 8)
     
     for i in range(num_entries):
         zvg_id = random.randint(100000, 999999)
-        # ABSOLUTE URL FÜR DEMO
-        portal_link = f"{API_BASE_URL}/api/zvg-redirect?zvg_id={zvg_id}&land_abk={bundesland_code}"
         
         results.append({
             "aktenzeichen": f"00{random.randint(1,9)} K {random.randint(1,999):04d}/2024",
@@ -505,8 +498,8 @@ def generate_demo_foreclosures(bundesland_code: str) -> List[dict]:
             "ort": "Musterstadt",
             "verkehrswert": "250.000 €",
             "zvg_id": str(zvg_id),
-            "link": portal_link,
-            "pdf_link": f"{API_BASE_URL}/api/zvg-document?zvg_id={zvg_id}&land_abk={bundesland_code}&doc_type=gutachten"
+            "land_abk": bundesland_code,
+            "pdf_doc_type": "gutachten"
         })
     return results
 

@@ -91,26 +91,14 @@ const API = `${BACKEND_URL}/api`;
 
 // Helper function to generate ZVG redirect URL
 const getZvgRedirectUrl = (zvgId, landAbk) => {
+  if (!zvgId || !landAbk) return null;
   return `${API}/zvg-redirect?zvg_id=${zvgId}&land_abk=${landAbk}`;
 };
 
 // Helper function to generate ZVG document URL
 const getZvgDocumentUrl = (zvgId, landAbk, docType) => {
+  if (!zvgId || !landAbk) return null;
   return `${API}/zvg-document?zvg_id=${zvgId}&land_abk=${landAbk}&doc_type=${docType}`;
-};
-
-// Extract zvg_id from link
-const extractZvgId = (link) => {
-  if (!link) return null;
-  const match = link.match(/zvg_id=(\d+)/);
-  return match ? match[1] : null;
-};
-
-// Extract land_abk from link
-const extractLandAbk = (link) => {
-  if (!link) return null;
-  const match = link.match(/land_abk=(\w+)/);
-  return match ? match[1] : null;
 };
 
 // Ukrainian translations
@@ -770,9 +758,9 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                   </TableCell>
                   <TableCell className="text-right font-mono text-[#111827] font-semibold">{f.verkehrswert || "-"}</TableCell>
                   <TableCell className="text-center">
-                    {f.link && (
+                    {f.zvg_id && (
                       <a
-                        href={getZvgRedirectUrl(extractZvgId(f.link), extractLandAbk(f.link) || f.bundesland_code)}
+                        href={getZvgRedirectUrl(f.zvg_id, f.land_abk || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -969,9 +957,9 @@ function TermineView({
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm font-semibold text-[#111827]">{f.verkehrswert || "-"}</TableCell>
                   <TableCell className="text-center">
-                    {f.link && (
+                    {f.zvg_id && (
                       <a
-                        href={getZvgRedirectUrl(extractZvgId(f.link), extractLandAbk(f.link) || f.bundesland_code)}
+                        href={getZvgRedirectUrl(f.zvg_id, f.land_abk || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -1353,12 +1341,13 @@ function SettingsDialog({ open, onOpenChange, settings, onSave }) {
 
 // Enhanced Foreclosure Detail Component with better contrast and PDF links
 function ForeclosureDetail({ foreclosure }) {
-  // Get zvg_id and land_abk from foreclosure
-  const zvgId = extractZvgId(foreclosure.link) || foreclosure.zvg_id;
-  const landAbk = extractLandAbk(foreclosure.link) || foreclosure.bundesland_code;
+  // Get zvg_id and land_abk directly from foreclosure data
+  const zvgId = foreclosure.zvg_id;
+  const landAbk = foreclosure.land_abk || foreclosure.bundesland_code;
   
   // Generate direct PDF document links using proxy endpoints
   const generateDocumentLinks = () => {
+    if (!zvgId) return null;
     return {
       gutachten: {
         url: getZvgDocumentUrl(zvgId, landAbk, 'gutachten'),
@@ -1382,7 +1371,7 @@ function ForeclosureDetail({ foreclosure }) {
   const documentLinks = generateDocumentLinks();
   
   // Main portal link using proxy
-  const mainPortalLink = getZvgRedirectUrl(zvgId, landAbk);
+  const mainPortalLink = zvgId ? getZvgRedirectUrl(zvgId, landAbk) : null;
 
   // Generate extended object details
   const generateObjectDetails = () => {
@@ -1609,45 +1598,47 @@ function ForeclosureDetail({ foreclosure }) {
       </Accordion>
 
       {/* Documents Section - PDF Links */}
-      <div className="bg-white p-4 rounded-lg border border-[#E5E7EB]">
-        <h4 className="text-xs uppercase tracking-wider font-semibold text-[#374151] mb-3 flex items-center gap-2">
-          <FileText size={16} className="text-[#0052FF]" />
-          {UI_TEXT.documents}
-        </h4>
-        <div className="grid grid-cols-1 gap-2">
-          <DocumentLink
-            icon={<FilePdf size={20} />}
-            label={documentLinks.gutachten.label}
-            href={documentLinks.gutachten.url}
-            isPdf={true}
-            testId="doc-gutachten"
-          />
-          <DocumentLink
-            icon={<FilePdf size={20} />}
-            label={documentLinks.expose.label}
-            href={documentLinks.expose.url}
-            isPdf={true}
-            testId="doc-expose"
-          />
-          <DocumentLink
-            icon={<Image size={20} />}
-            label={documentLinks.fotos.label}
-            href={documentLinks.fotos.url}
-            isPdf={false}
-            testId="doc-fotos"
-          />
-          <DocumentLink
-            icon={<FilePdf size={20} />}
-            label={documentLinks.gerichtsdokumente.label}
-            href={documentLinks.gerichtsdokumente.url}
-            isPdf={true}
-            testId="doc-gerichtsdokumente"
-          />
+      {documentLinks && (
+        <div className="bg-white p-4 rounded-lg border border-[#E5E7EB]">
+          <h4 className="text-xs uppercase tracking-wider font-semibold text-[#374151] mb-3 flex items-center gap-2">
+            <FileText size={16} className="text-[#0052FF]" />
+            {UI_TEXT.documents}
+          </h4>
+          <div className="grid grid-cols-1 gap-2">
+            <DocumentLink
+              icon={<FilePdf size={20} />}
+              label={documentLinks.gutachten.label}
+              href={documentLinks.gutachten.url}
+              isPdf={true}
+              testId="doc-gutachten"
+            />
+            <DocumentLink
+              icon={<FilePdf size={20} />}
+              label={documentLinks.expose.label}
+              href={documentLinks.expose.url}
+              isPdf={true}
+              testId="doc-expose"
+            />
+            <DocumentLink
+              icon={<Image size={20} />}
+              label={documentLinks.fotos.label}
+              href={documentLinks.fotos.url}
+              isPdf={false}
+              testId="doc-fotos"
+            />
+            <DocumentLink
+              icon={<FilePdf size={20} />}
+              label={documentLinks.gerichtsdokumente.label}
+              href={documentLinks.gerichtsdokumente.url}
+              isPdf={true}
+              testId="doc-gerichtsdokumente"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Portal Link */}
-      {foreclosure.link && (
+      {mainPortalLink && (
         <Button
           className="w-full bg-[#111827] hover:bg-[#1F2937] text-white"
           onClick={() => window.open(mainPortalLink, '_blank')}
