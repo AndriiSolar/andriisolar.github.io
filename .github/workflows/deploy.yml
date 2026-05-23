@@ -1,0 +1,56 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+  workflow_dispatch: # Ermöglicht manuelles Auslösen
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        env:
+          # Setze die Backend-URL als GitHub Actions Secret
+          # Gehe zu: Repo → Settings → Secrets → Actions → New repository secret
+          # Name: REACT_APP_BACKEND_URL  Value: https://dein-backend.example.com
+          REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
+          # Falls kein Secret gesetzt ist, wird dieser Fallback verwendet:
+          CI: false
+        run: |
+          if [ -z "$REACT_APP_BACKEND_URL" ]; then
+            echo "⚠️  Kein REACT_APP_BACKEND_URL Secret gesetzt. API-Aufrufe werden fehlschlagen!"
+            echo "    Gehe zu: Repo → Settings → Secrets and variables → Actions → New repository secret"
+            echo "    Name: REACT_APP_BACKEND_URL"
+          fi
+          yarn build
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: frontend/build
+          branch: gh-pages
+          clean: true
