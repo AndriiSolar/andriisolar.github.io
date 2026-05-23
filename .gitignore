@@ -90,3 +90,6 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Allow frontend production env (contains only placeholder, real secret is in GitHub Actions)
+!frontend/.env.production
