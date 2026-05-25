@@ -1,11 +1,10 @@
-# Minimal production requirements for server.py
-# Only packages actually imported/used at runtime
+# Production requirements for server.py
+# pydantic-core is NOT listed separately - pydantic installs the correct version automatically
 
 fastapi==0.110.1
 uvicorn[standard]==0.29.0
 starlette==0.37.2
 pydantic[email]==2.7.1
-pydantic-core==2.18.2
 python-dotenv==1.0.1
 motor==3.4.0
 pymongo==4.7.2
@@ -14,8 +13,4 @@ beautifulsoup4==4.12.3
 lxml==5.2.2
 resend==2.2.0
 python-multipart==0.0.9
-anyio==4.3.0
-sniffio==1.3.1
-h11==0.14.0
-certifi==2024.2.2
-idna==3.7
+email-validator==2.1.1
