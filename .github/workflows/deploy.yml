@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch: # Ermöglicht manuelles Auslösen
 
 permissions:
@@ -25,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -34,15 +35,12 @@ jobs:
 
       - name: Build
         env:
-          # Setze die Backend-URL als GitHub Actions Secret
-          # Gehe zu: Repo → Settings → Secrets → Actions → New repository secret
-          # Name: REACT_APP_BACKEND_URL  Value: https://dein-backend.example.com
           REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
-          # Falls kein Secret gesetzt ist, wird dieser Fallback verwendet:
           CI: false
+          GENERATE_SOURCEMAP: false
         run: |
           if [ -z "$REACT_APP_BACKEND_URL" ]; then
-            echo "⚠️  Kein REACT_APP_BACKEND_URL Secret gesetzt. API-Aufrufe werden fehlschlagen!"
+            echo "⚠️  Kein REACT_APP_BACKEND_URL Secret gesetzt."
             echo "    Gehe zu: Repo → Settings → Secrets and variables → Actions → New repository secret"
             echo "    Name: REACT_APP_BACKEND_URL"
           fi
