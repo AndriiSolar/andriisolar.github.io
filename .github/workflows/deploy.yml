@@ -7,17 +7,24 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy.yml'
-  workflow_dispatch: # Ermöglicht manuelles Auslösen
+  workflow_dispatch: # Allows manual triggering
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: https://andriisolar.github.io
+      url: ${{ steps.deployment.outputs.page_url }}
     defaults:
       run:
         working-directory: ./frontend
@@ -49,9 +56,14 @@ jobs:
           fi
           npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          folder: frontend/build
-          branch: gh-pages
-          clean: true
+          path: frontend/build
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
