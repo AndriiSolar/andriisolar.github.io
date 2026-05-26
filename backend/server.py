@@ -714,6 +714,13 @@ async def get_statistics():
 
 app.include_router(api_router)
 
+@app.get("/")
+async def root():
+    return {
+        "status": "healthy",
+        "message": "ZVG Extractor API is running. Go to /api/statistics or /docs to explore the API."
+    }
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
