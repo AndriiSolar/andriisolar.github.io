@@ -4,7 +4,6 @@
   "private": true,
   "homepage": "https://andriisolar.github.io",
   "dependencies": {
-    "ajv": "^8.12.0",
     "@hookform/resolvers": "^5.0.1",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-accordion": "^1.2.8",
@@ -93,6 +92,11 @@
     "tailwindcss": "^3.4.17"
   },
   "overrides": {
-    "ajv": "^8.12.0"
+    "ajv-keywords@5": {
+      "ajv": "^8.12.0"
+    },
+    "ajv-formats": {
+      "ajv": "^8.12.0"
+    }
   }
 }
