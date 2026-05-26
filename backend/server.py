@@ -338,7 +338,7 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
                 if (step === 0) {{
                     step = 1;
                     document.getElementById('session-frame-2').src = "{detail_url}";
-                }
+                }}
             }};
             
             document.getElementById('session-frame-2').onload = function() {{
