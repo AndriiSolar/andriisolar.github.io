@@ -86,7 +86,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL ? process.env.REACT_APP_BACKEND_URL.replace(/\/$/, "") : "";
 const API = `${BACKEND_URL}/api`;
 
 // Helper function to generate ZVG redirect URL
