@@ -247,21 +247,31 @@ async def zvg_redirect(zvg_id: str, land_abk: str):
             <div class="spinner"></div>
             <h2>Verbinde zum ZVG-Portal</h2>
             <p>Sichere Verbindung wird hergestellt...</p>
-            <div class="countdown" id="countdown">4</div>
+            <div class="countdown" id="countdown">3</div>
             <p style="font-size: 0.8rem; margin-top: 1rem; color: #6b7280;">
                 <a href="{detail_url}">Klicken, falls nichts passiert</a>
             </p>
         </div>
         <iframe id="session-frame" style="display:none;" src="{search_url}"></iframe>
         <script>
-            var seconds = 4;
+            var redirected = false;
+            function doRedirect() {{
+                if (!redirected) {{
+                    redirected = true;
+                    window.location.href = "{detail_url}";
+                }}
+            }}
+            
+            document.getElementById('session-frame').onload = doRedirect;
+            
+            var seconds = 3;
             var countdownEl = document.getElementById('countdown');
             var timer = setInterval(function() {{
                 seconds--;
                 countdownEl.textContent = seconds;
                 if (seconds <= 0) {{
                     clearInterval(timer);
-                    window.location.href = "{detail_url}";
+                    doRedirect();
                 }}
             }}, 1000);
         </script>
@@ -306,7 +316,7 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
             <div class="spinner"></div>
             <h2>Dokument wird geladen</h2>
             <p>Session wird aufgebaut...</p>
-            <div class="countdown" id="countdown">6</div>
+            <div class="countdown" id="countdown">5</div>
             <p style="font-size: 0.8rem; margin-top: 1rem; color: #6b7280;">
                 <a href="{doc_url}">Klicken, falls nichts passiert</a>
             </p>
@@ -314,23 +324,38 @@ async def zvg_document(zvg_id: str, land_abk: str, doc_type: str):
         <iframe id="session-frame-1" style="display:none;" src="{search_url}"></iframe>
         <iframe id="session-frame-2" style="display:none;"></iframe>
         <script>
-            var seconds = 6;
-            var countdownEl = document.getElementById('countdown');
+            var redirected = false;
+            function doRedirect() {{
+                if (!redirected) {{
+                    redirected = true;
+                    window.location.href = "{doc_url}";
+                }}
+            }}
+            
             var step = 0;
             
             document.getElementById('session-frame-1').onload = function() {{
                 if (step === 0) {{
                     step = 1;
                     document.getElementById('session-frame-2').src = "{detail_url}";
+                }
+            }};
+            
+            document.getElementById('session-frame-2').onload = function() {{
+                if (step === 1) {{
+                    step = 2;
+                    doRedirect();
                 }}
             }};
             
+            var seconds = 5;
+            var countdownEl = document.getElementById('countdown');
             var timer = setInterval(function() {{
                 seconds--;
                 countdownEl.textContent = seconds;
                 if (seconds <= 0) {{
                     clearInterval(timer);
-                    window.location.href = "{doc_url}";
+                    doRedirect();
                 }}
             }}, 1000);
         </script>

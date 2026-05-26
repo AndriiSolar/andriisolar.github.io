@@ -101,6 +101,178 @@ const getZvgDocumentUrl = (zvgId, landAbk, docType) => {
   return `${API}/zvg-document?zvg_id=${zvgId}&land_abk=${landAbk}&doc_type=${docType}`;
 };
 
+// Helper function to create ZVG redirect Blob URL dynamically
+const createZvgRedirectBlobUrl = (zvgId, landAbk) => {
+  const detailUrl = `https://www.zvg-portal.de/index.php?button=showZvg&zvg_id=${zvgId}&land_abk=${landAbk}`;
+  const searchUrl = `https://www.zvg-portal.de/index.php?button=Suchen&land_abk=${landAbk}&ger_id=0&order_by=2`;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weiterleitung zum ZVG-Portal...</title>
+        <style>
+            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f9fafb; margin: 0; }
+            .loader { text-align: center; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .spinner { width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .countdown { font-size: 1.5rem; font-weight: bold; color: #3b82f6; margin: 1rem 0; }
+            a { color: #3b82f6; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="loader">
+            <div class="spinner"></div>
+            <h2>Verbinde zum ZVG-Portal</h2>
+            <p>Sichere Verbindung wird hergestellt...</p>
+            <div class="countdown" id="countdown">3</div>
+            <p style="font-size: 0.8rem; margin-top: 1rem; color: #6b7280;">
+                <a href="${detailUrl}">Klicken, falls nichts passiert</a>
+            </p>
+        </div>
+        <iframe id="session-frame" style="display:none;" src="${searchUrl}"></iframe>
+        <script>
+            var redirected = false;
+            function doRedirect() {
+                if (!redirected) {
+                    redirected = true;
+                    window.location.href = "${detailUrl}";
+                }
+            }
+            
+            document.getElementById('session-frame').onload = doRedirect;
+            
+            var seconds = 3;
+            var countdownEl = document.getElementById('countdown');
+            var timer = setInterval(function() {
+                seconds--;
+                countdownEl.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    doRedirect();
+                }
+            }, 1000);
+        </script>
+    </body>
+    </html>
+  `;
+  
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  return URL.createObjectURL(blob);
+};
+
+// Helper function to create ZVG document Blob URL dynamically
+const createZvgDocumentBlobUrl = (zvgId, landAbk, docType) => {
+  const docUrls = {
+    "gutachten": `https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id=${zvgId}&land_abk=${landAbk}&anhession=gutachten`,
+    "expose": `https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id=${zvgId}&land_abk=${landAbk}&anhession=expose`,
+    "fotos": `https://www.zvg-portal.de/index.php?button=showZvgFotos&zvg_id=${zvgId}&land_abk=${landAbk}`,
+    "dokumente": `https://www.zvg-portal.de/index.php?button=showAnhang&zvg_id=${zvgId}&land_abk=${landAbk}&anhession=dokumente`,
+  };
+  
+  const docUrl = docUrls[docType] || docUrls["gutachten"];
+  const searchUrl = `https://www.zvg-portal.de/index.php?button=Suchen&land_abk=${landAbk}&ger_id=0&order_by=2`;
+  const detailUrl = `https://www.zvg-portal.de/index.php?button=showZvg&zvg_id=${zvgId}&land_abk=${landAbk}`;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dokument laden...</title>
+        <style>
+            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f9fafb; margin: 0; }
+            .loader { text-align: center; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .spinner { width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: #ef4444; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .countdown { font-size: 1.5rem; font-weight: bold; color: #ef4444; margin: 1rem 0; }
+            a { color: #3b82f6; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="loader">
+            <div class="spinner"></div>
+            <h2>Dokument wird geladen</h2>
+            <p>Session wird aufgebaut...</p>
+            <div class="countdown" id="countdown">5</div>
+            <p style="font-size: 0.8rem; margin-top: 1rem; color: #6b7280;">
+                <a href="${docUrl}">Klicken, falls nichts passiert</a>
+            </p>
+        </div>
+        <iframe id="session-frame-1" style="display:none;" src="${searchUrl}"></iframe>
+        <iframe id="session-frame-2" style="display:none;"></iframe>
+        <script>
+            var redirected = false;
+            function doRedirect() {
+                if (!redirected) {
+                    redirected = true;
+                    window.location.href = "${docUrl}";
+                }
+            }
+            
+            var step = 0;
+            
+            document.getElementById('session-frame-1').onload = function() {
+                if (step === 0) {
+                    step = 1;
+                    document.getElementById('session-frame-2').src = "${detailUrl}";
+                }
+            };
+            
+            document.getElementById('session-frame-2').onload = function() {
+                if (step === 1) {
+                    step = 2;
+                    doRedirect();
+                }
+            };
+            
+            var seconds = 5;
+            var countdownEl = document.getElementById('countdown');
+            var timer = setInterval(function() {
+                seconds--;
+                countdownEl.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    doRedirect();
+                }
+            }, 1000);
+        </script>
+    </body>
+    </html>
+  `;
+  
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  return URL.createObjectURL(blob);
+};
+
+// Click handler to open redirect Blob URL in new tab and auto-revoke
+const handleZvgRedirectClick = (e, zvgId, landAbk) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!zvgId || !landAbk) return;
+  const url = createZvgRedirectBlobUrl(zvgId, landAbk);
+  window.open(url, '_blank');
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 10000);
+};
+
+// Click handler to open document Blob URL in new tab and auto-revoke
+const handleZvgDocumentClick = (e, zvgId, landAbk, docType) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!zvgId || !landAbk || !docType) return;
+  const url = createZvgDocumentBlobUrl(zvgId, landAbk, docType);
+  window.open(url, '_blank');
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 10000);
+};
+
+
 // Ukrainian translations
 const UI_TEXT = {
   // Header
@@ -763,7 +935,7 @@ function DashboardView({ statistics, foreclosures, loading, onOpenDetail }) {
                         href={getZvgRedirectUrl(f.zvg_id, f.land_abk || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => handleZvgRedirectClick(e, f.zvg_id, f.land_abk || f.bundesland_code)}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#E0E7FF] hover:bg-[#C7D2FE] transition-colors text-xs font-medium text-[#0052FF]"
                         title={`Термін ${f.aktenzeichen} на ZVG-порталі`}
                         data-testid={`link-${f.id}`}
@@ -962,7 +1134,7 @@ function TermineView({
                         href={getZvgRedirectUrl(f.zvg_id, f.land_abk || f.bundesland_code)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => handleZvgRedirectClick(e, f.zvg_id, f.land_abk || f.bundesland_code)}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#E0E7FF] hover:bg-[#C7D2FE] transition-colors text-xs font-medium text-[#0052FF]"
                         title={`Термін ${f.aktenzeichen} на ZVG-порталі`}
                         data-testid={`link-${f.id}`}
@@ -1609,6 +1781,7 @@ function ForeclosureDetail({ foreclosure }) {
               icon={<FilePdf size={20} />}
               label={documentLinks.gutachten.label}
               href={documentLinks.gutachten.url}
+              onClick={(e) => handleZvgDocumentClick(e, zvgId, landAbk, 'gutachten')}
               isPdf={true}
               testId="doc-gutachten"
             />
@@ -1616,6 +1789,7 @@ function ForeclosureDetail({ foreclosure }) {
               icon={<FilePdf size={20} />}
               label={documentLinks.expose.label}
               href={documentLinks.expose.url}
+              onClick={(e) => handleZvgDocumentClick(e, zvgId, landAbk, 'expose')}
               isPdf={true}
               testId="doc-expose"
             />
@@ -1623,6 +1797,7 @@ function ForeclosureDetail({ foreclosure }) {
               icon={<Image size={20} />}
               label={documentLinks.fotos.label}
               href={documentLinks.fotos.url}
+              onClick={(e) => handleZvgDocumentClick(e, zvgId, landAbk, 'fotos')}
               isPdf={false}
               testId="doc-fotos"
             />
@@ -1630,6 +1805,7 @@ function ForeclosureDetail({ foreclosure }) {
               icon={<FilePdf size={20} />}
               label={documentLinks.gerichtsdokumente.label}
               href={documentLinks.gerichtsdokumente.url}
+              onClick={(e) => handleZvgDocumentClick(e, zvgId, landAbk, 'dokumente')}
               isPdf={true}
               testId="doc-gerichtsdokumente"
             />
@@ -1641,7 +1817,7 @@ function ForeclosureDetail({ foreclosure }) {
       {mainPortalLink && (
         <Button
           className="w-full bg-[#111827] hover:bg-[#1F2937] text-white"
-          onClick={() => window.open(mainPortalLink, '_blank')}
+          onClick={(e) => handleZvgRedirectClick(e, zvgId, landAbk)}
           data-testid="open-portal-link"
         >
           <LinkIcon size={16} className="mr-2" />
@@ -1654,12 +1830,13 @@ function ForeclosureDetail({ foreclosure }) {
 }
 
 // Document Link Component - Enhanced for PDF
-function DocumentLink({ icon, label, href, isPdf, testId }) {
+function DocumentLink({ icon, label, href, onClick, isPdf, testId }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={onClick}
       className="flex items-center gap-3 p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6] hover:border-[#D1D5DB] transition-colors group"
       data-testid={testId}
     >
